@@ -4,7 +4,7 @@ from os.path import abspath, dirname
 
 username = 'pavelmalevin'
 token = '50872cbedb63ef8730058f34022f10fcb3e4e940'
-path_to_file='/home/pavelmalevin/new_test'
+path_to_file='/home/pavelmalevin/web/unitapi'
 paw_domen='https://www.pythonanywhere.com'
 
 def post_file(filename, filecontent):

@@ -1,4 +1,4 @@
-# python REST_API/test.py
+# python unitapi/test.py
 
 import requests
 from loguru import logger
@@ -8,6 +8,8 @@ import json
 
 base = 'http://127.0.0.1:5000/clc/api/v1/'
 # base = 'http://unitapi.malevin.com/'
+key = '89a10379-1373-4a2e-b331-0adc36157443'
+# key = '89a10379-1373-4a2e-b336157443'
 
 
 def print_ans_decorator(func):
@@ -22,28 +24,42 @@ requests.post = print_ans_decorator(requests.post)
 requests.delete = print_ans_decorator(requests.delete)
 requests.put = print_ans_decorator(requests.put)
 
-params = {
-  'name': 'Тестовый3',
-  'taxation_type': 'НДС',
-  'contacts': '8235235',
-#   'is_active': 1,
-}
+# params = {
+#   'name': 'Тестовый3',
+#   'taxation_type': 'НДС',
+#   'contacts': '8235235',
+# #   'is_active': 1,
+# }
 
-ans = requests.put(base + 'contractors', json=params)
+# ans = requests.put(base + 'contractors', json=params)
 
-input()
+# input()
 params = {
-    'name': 'Тестовый3',
+    'name': 'Тест',
+    'asbd': 'AEBAFB'
+    # 'name': 'Тестовый3',
 }
-response = requests.get(base + '/contractors', json=params) # , verify=False
+headers = {
+    'key': key,
+    # "Content-Type": "application/json"
+}
+response = requests.get(base + '/contractors', json=params, headers=headers) # , verify=False
 
 ans = response.json()
 df = pd.DataFrame(ans['data'])
-inserted_id = df['id'].loc[0]
+logger.debug(df)
+
+# inserted_id = df['id'].loc[0]
 
 input()
-params = {
-    'id': int(inserted_id),
-}
-ans = requests.delete(base + 'contractors', json=params)
+
+response = requests.get(base + '/contractors', json=params, headers=headers) # , verify=False
+
+ans = response.json()
+df = pd.DataFrame(ans['data'])
+logger.debug(df)
+# params = {
+#     'id': int(inserted_id),
+# }
+# ans = requests.delete(base + 'contractors', json=params)
 

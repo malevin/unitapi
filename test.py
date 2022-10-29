@@ -6,8 +6,8 @@ import pandas as pd
 import json
 
 
-base = 'http://127.0.0.1:5000/clc/api/v1/'
-# base = 'http://unitapi.malevin.com/'
+# base = 'http://127.0.0.1:5000/clc/api/v1/'
+base = 'http://unitapi.malevin.com/'
 key = '89a10379-1373-4a2e-b331-0adc36157443'
 # key = '89a10379-1373-4a2e-b336157443'
 
@@ -43,7 +43,7 @@ headers = {
     'key': key,
     # "Content-Type": "application/json"
 }
-response = requests.get(base + '/contractors', json=params, headers=headers) # , verify=False
+response = requests.get(base + '/clc/api/v1/contractors', json=params, headers=headers) # , verify=False
 
 ans = response.json()
 df = pd.DataFrame(ans['data'])
@@ -51,13 +51,13 @@ logger.debug(df)
 
 # inserted_id = df['id'].loc[0]
 
-input()
+# input()
 
-response = requests.get(base + '/contractors', json=params, headers=headers) # , verify=False
+# response = requests.get(base + '/contractors', json=params, headers=headers) # , verify=False
 
-ans = response.json()
-df = pd.DataFrame(ans['data'])
-logger.debug(df)
+# ans = response.json()
+# df = pd.DataFrame(ans['data'])
+# logger.debug(df)
 # params = {
 #     'id': int(inserted_id),
 # }

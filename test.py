@@ -36,7 +36,7 @@ requests.put = print_ans_decorator(requests.put)
 # input()
 params = {
     'name': 'Тест',
-    'asbd': 'AEBAFB'
+    # 'asbd': 'AEBAFB'
     # 'name': 'Тестовый3',
 }
 headers = {

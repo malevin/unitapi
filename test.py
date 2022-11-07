@@ -5,9 +5,8 @@ from loguru import logger
 import pandas as pd
 import json
 
-
-# base = 'http://127.0.0.1:5000/clc/api/v1/'
-base = 'http://unitapi.malevin.com/'
+base = 'http://127.0.0.1:5000/clc/api/v1/'
+# base = 'http://unitapi.malevin.com/'
 key = '89a10379-1373-4a2e-b331-0adc36157443'
 # key = '89a10379-1373-4a2e-b336157443'
 
@@ -24,40 +23,42 @@ requests.post = print_ans_decorator(requests.post)
 requests.delete = print_ans_decorator(requests.delete)
 requests.put = print_ans_decorator(requests.put)
 
-# params = {
-#   'name': 'Тестовый3',
-#   'taxation_type': 'НДС',
-#   'contacts': '8235235',
-# #   'is_active': 1,
-# }
-
-# ans = requests.put(base + 'contractors', json=params)
-
-# input()
-params = {
-    'name': 'Тест',
-    # 'asbd': 'AEBAFB'
-    # 'name': 'Тестовый3',
-}
 headers = {
     'key': key,
-    # "Content-Type": "application/json"
 }
-response = requests.get(base + '/clc/api/v1/contractors', json=params, headers=headers) # , verify=False
 
-ans = response.json()
-df = pd.DataFrame(ans['data'])
-logger.debug(df)
+
+params = {
+    'id': 1140,
+    # 'inn': '2364624624633463246245624572236',
+    # 'name': 'TEST100',
+    # 'taxation_type': 34262,
+    # 'is_active': True
+}
+
+response = requests.delete(base + 'contractors', json=params, headers=headers) # , verify=False
+
+# ans = response.json()
+# df = pd.DataFrame(ans['data'])
+# logger.debug(ans.text)
 
 # inserted_id = df['id'].loc[0]
 
 # input()
 
-# response = requests.get(base + '/contractors', json=params, headers=headers) # , verify=False
+# params = {
+
+# }
+# response = requests.get(base + 'contractors', json=params, headers=headers) # , verify=False
 
 # ans = response.json()
 # df = pd.DataFrame(ans['data'])
 # logger.debug(df)
+
+
+
+
+
 # params = {
 #     'id': int(inserted_id),
 # }

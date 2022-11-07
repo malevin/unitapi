@@ -5,6 +5,7 @@ from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
 from datetime import date, datetime
 from flask.json import JSONEncoder
+from loguru import logger
 # from sqlalchemy.orm import declarative_base
 
 
@@ -48,20 +49,20 @@ def build_tables_fields_argparsers(engine, tables, db_name):
         # Для добавления обязательны поля, которые не могут быть пустыми и не имеют
         # автозаполнения либо значения по умолчанию
         parser_put = reqparse.RequestParser()
-        parser_put.add_argument('key', required=True, location='headers')
         # Для фильтрации все поля опциональны
         parser_get = reqparse.RequestParser()
-        parser_get.add_argument('key', required=True, location='headers')
         # Для удаления обязательны те поля, которые образуют уникальный ключ.
         # Иногда это одна колонка ид, иногда – несколько колонок
         parser_delete = reqparse.RequestParser()
-        parser_delete.add_argument('key', required=True, location='headers')
-        # if table_name != 'contractors':
-        #     continue
+        # Для обновления обязательны те поля, которые образуют уникальный ключ, остальные опциональны
+        parser_update = reqparse.RequestParser()
         table = tables[table_name]
+        primary_keys = []
         for column in inspect(table).primary_key:
             # column.type - тип данных в колонке
-            parser_delete.add_argument(column.name, required=True)
+            primary_keys.append(column.name)
+            parser_delete.add_argument(column.name, required=True, nullable=False, store_missing=False)
+            parser_update.add_argument(column.name, required=True, nullable=False, store_missing=False)
         for column in inspector.get_columns(table_name, schema=db_name):
             # Добавить проверку по типу данных ОБЯЗАТЕЛЬНО!
             parser_put.add_argument(
@@ -70,15 +71,28 @@ def build_tables_fields_argparsers(engine, tables, db_name):
                 required=not column["nullable"] and \
                     ((not column["autoincrement"]) if "autoincrement" in column else True) and \
                         column['default'] is None,
+                nullable=False,
+                store_missing=False
                 # default=column['default'] # бесполезная штука, потому что все равно тип данных не тот, конвертировать не за чем если БД сразу нужное значение вставит
             )
-            parser_get.add_argument(column['name'], required=False)
-        if table_name == 'contractor':
-            logger.debug(parser_get.args)
+            parser_get.add_argument(column['name'], required=False, nullable=True, store_missing=False)
+            if column['name'] not in primary_keys:
+                parser_update.add_argument(
+                    column['name'],
+                    required=False, # Если не передан, то возвращает ошибку
+                    nullable=True, # Если передано None, то возвращает ошибку
+                    store_missing=False # Если False, то парсит только переданные значения, остальные нет.
+                    # Если True (по дефолту), то все непереданные аргументы парсятся со значениями None
+                    )
+        # if table_name == 'contractor':
+        #     logger.debug(parser_update.args)
+        # for i in parser_update.args:
+        # logger.debug([a.name for a in parser_update.args if a.required])
         tables_fields_argparsers[table_name] = {
             'get': parser_get,
             'put': parser_put,
-            'del': parser_delete
+            'del': parser_delete,
+            'upd': parser_update
         }
     return tables_fields_argparsers
 

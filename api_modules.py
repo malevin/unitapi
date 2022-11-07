@@ -9,11 +9,22 @@ from loguru import logger
 # from sqlalchemy.orm import declarative_base
 
 
-def create_db_resources(creds):
-    conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**creds)
-    engine = create_engine(conn_str, echo=False)
+# def create_db_resources(creds):
+#     conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**creds)
+#     engine = create_engine(conn_str, echo=False)
+#     Base = automap_base()
+#     Base.prepare(engine, reflect=True)
+#     tables = Base.metadata.tables
+#     return engine, tables
+
+
+def create_db_resources_v2(creds):
+    engine = {}
+    for k, v in creds.items():
+        conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**v)
+        engine[k] = create_engine(conn_str, echo=False)
     Base = automap_base()
-    Base.prepare(engine, reflect=True)
+    Base.prepare(engine['production'], reflect=True)
     tables = Base.metadata.tables
     return engine, tables
 

@@ -25,21 +25,24 @@ requests.put = print_ans_decorator(requests.put)
 
 headers = {
     'key': key,
+    'stage': 'development'
 }
-
 
 params = {
-    'id': 1140,
-    # 'inn': '2364624624633463246245624572236',
-    # 'name': 'TEST100',
-    # 'taxation_type': 34262,
-    # 'is_active': True
+    # 'id': 1140,
+    'inn': '2364624624633463246245624572236',
+    'name': 'TEST100',
+    'taxation_type': 34262,
+    'is_active': True
 }
 
-response = requests.delete(base + 'contractors', json=params, headers=headers) # , verify=False
+response = requests.put(base + 'contractors', json=params, headers=headers)
 
-# ans = response.json()
-# df = pd.DataFrame(ans['data'])
+input()
+response = requests.get(base + 'contractors', json={}, headers=headers)
+
+ans = response.json()
+df = pd.DataFrame(ans['data'])
 # logger.debug(ans.text)
 
 # inserted_id = df['id'].loc[0]
@@ -53,7 +56,7 @@ response = requests.delete(base + 'contractors', json=params, headers=headers) #
 
 # ans = response.json()
 # df = pd.DataFrame(ans['data'])
-# logger.debug(df)
+logger.debug(df)
 
 
 

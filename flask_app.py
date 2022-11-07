@@ -10,28 +10,40 @@ from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
 from datetime import date, datetime
 from flask.json import JSONEncoder
-from api_modules import build_tables_fields_argparsers, create_db_resources, CustomJSONEncoder
+from api_modules import build_tables_fields_argparsers, create_db_resources_v2, CustomJSONEncoder
 # from sqlalchemy.orm import declarative_base
 
 
 KEY = '89a10379-1373-4a2e-b331-0adc36157443'
 creds = {
-    "hostname": "194.67.116.213",
-    "port": "3306",
-    "username": "root",
-    "password": "zs$N7b*7F2Zq",
-    "dbname": "scandia_clc"
+    'production': {
+        "hostname": "194.67.116.213",
+        "port": "3306",
+        "username": "root",
+        "password": "zs$N7b*7F2Zq",
+        "dbname": "scandia_clc"
+    },
+    'development': {
+        "hostname": "194.67.116.213",
+        "port": "3306",
+        "username": "root",
+        "password": "zs$N7b*7F2Zq",
+        "dbname": "dev_CLC"
+    }
 }
 engine, tables = create_db_resources(creds)
-tables_fields_argparsers = build_tables_fields_argparsers(engine, tables, creds['dbname'])
+tables_fields_argparsers = build_tables_fields_argparsers(engine['production'], tables, creds['production']['dbname'])
 
 
-def check_api_key_v2(function=None):
+def check_header(function=None):
     @wraps(function)
     def wrapper(*args, **kwargs):
         h = dict(request.headers)
         if 'Key' not in h or h['Key'] != KEY:
             abort(401, message='Unauthorized')
+        if 'Stage' not in h or h['Stage'] not in ['development', 'production']:
+            abort(400, message="Specify stage of the project: development (for tests) or production. Note that if you work with special database for development tables' properties are still from real database. Watch both to have equal schemas for proper testing. Only data may differ.")
+        kwargs['stage'] = h['Stage']
         res = function(*args, **kwargs)
         return res
     return wrapper
@@ -46,11 +58,11 @@ def check_for_empty_table(q, multiple_records_abort=False):
 
 
 class Table(Resource):
-    @check_api_key_v2
-    def post(self, table_name):
+    @check_header
+    def post(self, table_name, stage):
         parser = tables_fields_argparsers[table_name]['upd']
         args = parser.parse_args(strict=True)
-        session = Session(engine)
+        session = Session(engine[stage])
         table = tables[table_name]
         primary_keys = [a.name for a in parser.args if a.required]
         values = {key: value for (key, value) in args.items() if key not in primary_keys}
@@ -68,11 +80,11 @@ class Table(Resource):
             ), 403)
             return response
 
-    @check_api_key_v2
-    def get(self, table_name):
+    @check_header
+    def get(self, table_name, stage):
         parser = tables_fields_argparsers[table_name]['get']
         args = parser.parse_args(strict=True)
-        session = Session(engine)
+        session = Session(engine[stage])
         table = tables[table_name]
         where_clauses = [table.c[key]==value for (key, value) in args.items()]
         result = session.query(table).filter(*where_clauses)
@@ -83,11 +95,11 @@ class Table(Resource):
         d = [{c: v for c, v in zip(columns, row)} for row in result]
         return jsonify({"data": d})
 
-    @check_api_key_v2
-    def put(self, table_name):
+    @check_header
+    def put(self, table_name, stage):
         parser = tables_fields_argparsers[table_name]['put']
         args = parser.parse_args(strict=True)
-        session = Session(engine)
+        session = Session(engine[stage])
         table = tables[table_name]
         # Вставлять список не рационально, если передается всего 1 строка, переделать!
         insert_list = [args]
@@ -103,11 +115,11 @@ class Table(Resource):
             # response.headers["Content-Type"] = "application/json"
             return response
 
-    @check_api_key_v2
-    def delete(self, table_name):
+    @check_header
+    def delete(self, table_name, stage):
         parser = tables_fields_argparsers[table_name]['del']
         args = parser.parse_args(strict=True)
-        session = Session(engine)
+        session = Session(engine[stage])
         table = tables[table_name]
         where_clauses = [table.c[key]==value for (key, value) in args.items()]
         q = session.query(table).filter(*where_clauses)
@@ -133,7 +145,7 @@ api.add_resource(Table, '/clc/api/v1/<table_name>')
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
 
 
 

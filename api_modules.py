@@ -18,6 +18,16 @@ from loguru import logger
 #     return engine, tables
 
 
+def build_spec_argparsers():
+    parsers = {}
+
+    parsers['ek_mats'] = reqparse.RequestParser()
+    parsers['ek_mats'].add_argument(
+        'ek_id', required=True, nullable=False, store_missing=False, type=int)
+
+    return parsers
+
+    
 def create_db_resources_v2(creds):
     engine = {}
     for k, v in creds.items():

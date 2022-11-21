@@ -11,7 +11,7 @@ from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
 from datetime import date, datetime
 from flask.json import JSONEncoder
-from api_modules import build_tables_fields_argparsers, create_db_resources_v2, CustomJSONEncoder, build_spec_argparsers
+from api_modules import build_tables_fields_argparsers, create_db_resources_v2, CustomJSONEncoder, build_spec_argparsers, build_actions_argparsers
 # from sqlalchemy.orm imposrt declarative_base
 
 
@@ -35,6 +35,7 @@ creds = {
 engine, tables = create_db_resources_v2(creds)
 tables_fields_argparsers = build_tables_fields_argparsers(engine['production'], tables, creds['production']['dbname'])
 spec_tables_argparsers = build_spec_argparsers()
+actions_argparsers = build_actions_argparsers()
 
 def check_header(function=None):
     @wraps(function)
@@ -200,6 +201,42 @@ class TableExpanded(Resource):
         return json_data
 
 
+def update_eks_clc_id(session, args):
+    ek = tables['ek']
+    try:
+        session.query(ek).filter(ek.c['id'].in_(args['ek_ids'])).update({'clc_id': args['clc_id']})
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
+class Actions(Resource):
+    @check_header
+    def post(self, action_name, stage):
+        if action_name not in actions_argparsers:
+            abort(404, message='Action not found')
+        session = Session(engine[stage])
+        parser = actions_argparsers[action_name]
+        args = parser.parse_args(strict=True)
+        logger.debug(args)
+        if action_name == 'give_clc_id_to_ek':
+            update_eks_clc_id(session, args)
+        
+
+
+# def make_ek_details(session, stage, ek_id):
+#     ek = tables['ek']
+#     columns = ek.columns.keys()
+#     ek = session.query(ek).filter(ek.c['id']==ek_id).one()
+#     ek = {c: v for c, v in zip(columns, ek)}
+#     return ek
+
+
 def make_ek_materials_table(session, stage, ek_id):
     ek = tables['ek']
     columns = ek.columns.keys()
@@ -255,14 +292,14 @@ def make_ek_materials_table(session, stage, ek_id):
 # def debug_func():
 #     stage = 'production'
 #     session = Session(engine[stage])
-#     df = make_ek_materials_table(session, stage, 1)
+#     df = make_ek_table(session, stage, 2)
 
 
 class SpecialTable(Resource):
     @check_header
     def get(self, table_name, stage):
         if table_name not in spec_tables_argparsers:
-            abort(404, message='Special table now found')
+            abort(404, message='Special table not found')
         parser = spec_tables_argparsers[table_name]
         args = parser.parse_args(strict=True)
         # logger.debug(args)
@@ -279,11 +316,12 @@ api = Api(app)
 api.add_resource(Table, '/clc/api/v1/<table_name>')
 api.add_resource(TableExpanded, '/clc/api/v1/expanded/<table_name>')
 api.add_resource(SpecialTable, '/clc/api/v1/special/<table_name>')
+api.add_resource(Actions, '/clc/api/v1/actions/<action_name>')
 # Если таблицы нет, то выдает ошибку 500, нужно 404
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
     # debug_func()
     # df = build_expanded_table_v2()
     # build_expanded_table('ep', 'production')

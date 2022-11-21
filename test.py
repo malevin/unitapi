@@ -29,57 +29,22 @@ requests.put = print_ans_decorator(requests.put)
 headers = {
     'key': key,
     'stage': 'production',
-    # 'Content-Type': 'application/json'
+    'Content-Type': 'application/json'
 }
 
 params = {
-    'ek_id': 1,
-    # 'bsdb':'fbdb'
+    'ek_ids': [1, 2],
+    'clc_id': 'adfb dfb'
 }
-# {
-#     "tables_to_glue": {
-#         "clc": {
-#             "remain_cols": ["id", "name", "contracts_id"],
-#             "left_on": "clc_id",
-#             "right_on": "id"
-#         },
-#         "contracts": {
-#             "remain_cols": ["id", "name", "items_id"],
-#             "left_on": "clc_contracts_id",
-#             "right_on": "id"
-#         },
-#         "items": {
-#             "remain_cols": ["id", "name", "sub_pakets_id"],
-#             "left_on": "contracts_items_id",
-#             "right_on": "id"
-#         },
-#         "sub_pakets": {
-#             "remain_cols": ["id", "name"],
-#             "left_on": "items_sub_pakets_id",
-#             "right_on": "id"
-#         }
-#     },
-#     "filter_by": {
-#         "estimations_id": 8
-#     }
-# }
+
 data = """
 {
-    "tables_to_glue": {
-        "contracts": {
-            "remain_cols": ["id","name", "number", "date"],
-            "left_on": "contracts_id",
-            "right_on": "id"
-        }
-    },
-    "filter_by": {
-      "estimation_id": 2
-    }
+    "ek_ids": [1, 2],
 }
 """
 
 # response = requests.post(base + 'expanded/contracts', data=data.encode('utf-8'), headers=headers)
-response = requests.get(base + 'special/ek_mats', headers=headers, json=params)
+response = requests.post(base + 'actions/give_clc_id_to_ek', headers=headers, json=params)
 
 # input()
 # response = requests.get(base + 'contractors', json={}, headers=headers)
@@ -87,10 +52,10 @@ response = requests.get(base + 'special/ek_mats', headers=headers, json=params)
 ans = response.json()
 # logger.debug(type(ans['data']))
 # logger.debug(ans)
-logger.debug(type(ans))
-df = pd.DataFrame(json.loads(ans))
-logger.debug(df)
-logger.debug(df.columns)
+# logger.debug(type(ans))
+# df = pd.DataFrame(json.loads(ans))
+# logger.debug(df)
+# logger.debug(df.columns)
 
 # inserted_id = df['id'].loc[0]
 

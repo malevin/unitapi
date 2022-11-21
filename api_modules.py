@@ -17,6 +17,15 @@ from loguru import logger
 #     tables = Base.metadata.tables
 #     return engine, tables
 
+def build_actions_argparsers():
+    parsers = {}
+    parsers['give_clc_id_to_ek'] = reqparse.RequestParser()
+    parsers['give_clc_id_to_ek'].add_argument(
+        'ek_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    parsers['give_clc_id_to_ek'].add_argument(
+        'clc_id', required=True, nullable=True, store_missing=False, type=int, action='store')
+    return parsers
+
 
 def build_spec_argparsers():
     parsers = {}

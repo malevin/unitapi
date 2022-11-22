@@ -315,7 +315,9 @@ class SpecialTable(Resource):
         if table_name == 'ek_mats':
             df = make_ek_materials_table(session, stage, **args)
         json_data = df.to_json(force_ascii=False, orient='records', date_format='iso')
-        return json_data
+        response = make_response(json_data, 200)
+        response.headers["Content-Type"] = "application/json"
+        return response
         
 
 app = Flask(__name__)

@@ -22,7 +22,7 @@ creds = {
         "port": "3306",
         "username": "root",
         "password": "zs$N7b*7F2Zq",
-        "dbname": "unit_clc"
+        "dbname": "unit_clc_main"
     },
     'development': {
         "hostname": "194.67.116.213",
@@ -181,7 +181,10 @@ class TableExpanded(Resource):
         base_table = tables[table_name]
         base_query = session.query(base_table)
         base_df = pd.read_sql(base_query.statement, engine[stage])
+        logger.debug(base_df)
         for table_name, table_params in data['tables_to_glue'].items():
+            if base_df[table_params['left_on']].isnull().all():
+                continue
             table = tables[table_name]
             query = session.query(table)
             if 'remain_cols' in table_params and len(table_params['remain_cols']) > 0:
@@ -325,7 +328,6 @@ if __name__ == '__main__':
     # debug_func()
     # df = build_expanded_table_v2()
     # build_expanded_table('ep', 'production')
-
 
 
 

@@ -5,7 +5,6 @@ from loguru import logger
 import pandas as pd
 import json
 
-# entities = pd.DataFrame([{'name':'СЗ Скандиа'}])
 # logger.debug(entities)
 
 # raise Exception
@@ -34,17 +33,26 @@ headers = {
 
 params = {
     'ek_ids': [1, 2],
-    'clc_id': 'adfb dfb'
+    'clc_id': 0
 }
 
 data = """
 {
-    "ek_ids": [1, 2],
+    "tables_to_glue": {
+        "contracts": {
+            "remain_cols": ["id","name", "number", "date"],
+            "left_on": "contracts_id",
+            "right_on": "id"
+        }
+    },
+    "filter_by": {
+        "estimation_id": 1
+    }
 }
 """
 
-# response = requests.post(base + 'expanded/contracts', data=data.encode('utf-8'), headers=headers)
-response = requests.post(base + 'actions/give_clc_id_to_ek', headers=headers, json=params)
+response = requests.post(base + 'expanded/clc', data=data.encode('utf-8'), headers=headers)
+# response = requests.post(base + 'actions/give_clc_id_to_ek', headers=headers, json=params)
 
 # input()
 # response = requests.get(base + 'contractors', json={}, headers=headers)
@@ -53,8 +61,8 @@ ans = response.json()
 # logger.debug(type(ans['data']))
 # logger.debug(ans)
 # logger.debug(type(ans))
-# df = pd.DataFrame(json.loads(ans))
-# logger.debug(df)
+df = pd.DataFrame(json.loads(ans))
+logger.debug(df)
 # logger.debug(df.columns)
 
 # inserted_id = df['id'].loc[0]

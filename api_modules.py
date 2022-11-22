@@ -23,7 +23,7 @@ def build_actions_argparsers():
     parsers['give_clc_id_to_ek'].add_argument(
         'ek_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
     parsers['give_clc_id_to_ek'].add_argument(
-        'clc_id', required=True, nullable=True, store_missing=False, type=int, action='store')
+        'clc_id', required=False, nullable=True, store_missing=True, type=int, action='store')
     return parsers
 
 

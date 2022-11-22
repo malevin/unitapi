@@ -61,7 +61,7 @@ ans = response.json()
 # logger.debug(type(ans['data']))
 # logger.debug(ans)
 # logger.debug(type(ans))
-df = pd.DataFrame(json.loads(ans))
+df = pd.DataFrame(ans)
 logger.debug(df)
 # logger.debug(df.columns)
 

@@ -204,7 +204,9 @@ class TableExpanded(Resource):
         # base_df = base_df.to_dict(orient='records')
         # return jsonify({"data": base_df})
         json_data = base_df.to_json(force_ascii=False, orient='records', date_format='iso')
-        return json_data
+        response = make_response(json_data, 200)
+        response.headers["Content-Type"] = "application/json"
+        return response
 
 
 def update_eks_clc_id(session, args):

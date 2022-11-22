@@ -184,6 +184,9 @@ class TableExpanded(Resource):
         logger.debug(base_df)
         for table_name, table_params in data['tables_to_glue'].items():
             if base_df[table_params['left_on']].isnull().all():
+                if 'remain_cols' in table_params and len(table_params['remain_cols']) > 0:
+                    cols = [table_name + '_' + c for c in table_params['remain_cols']]
+                    base_df[cols] = None
                 continue
             table = tables[table_name]
             query = session.query(table)

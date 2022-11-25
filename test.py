@@ -28,31 +28,30 @@ requests.put = print_ans_decorator(requests.put)
 headers = {
     'key': key,
     'stage': 'production',
-    'Content-Type': 'application/json'
+    # 'Content-Type': 'application/json'
 }
 
 params = {
-    'ek_ids': [1, 2],
-    'clc_id': 0
+    'est_id': 2
 }
 
-data = """
-{
-    "tables_to_glue": {
-        "contracts": {
-            "remain_cols": ["id","name", "number", "date"],
-            "left_on": "contracts_id",
-            "right_on": "id"
-        }
-    },
-    "filter_by": {
-        "estimation_id": 1
-    }
-}
-"""
+# data = """
+# {
+#     "tables_to_glue": {
+#         "contracts": {
+#             "remain_cols": ["id","name", "number", "date"],
+#             "left_on": "contracts_id",
+#             "right_on": "id"
+#         }
+#     },
+#     "filter_by": {
+#         "estimation_id": 1
+#     }
+# }
+# """
 
-response = requests.post(base + 'expanded/clc', data=data.encode('utf-8'), headers=headers)
-# response = requests.post(base + 'actions/give_clc_id_to_ek', headers=headers, json=params)
+# response = requests.post(base + 'special/ek_mats', data=data.encode('utf-8'), headers=headers)
+response = requests.get(base + 'special/est_mats', headers=headers, json=params)
 
 # input()
 # response = requests.get(base + 'contractors', json={}, headers=headers)
@@ -63,7 +62,7 @@ ans = response.json()
 # logger.debug(type(ans))
 df = pd.DataFrame(ans)
 logger.debug(df)
-# logger.debug(df.columns)
+logger.debug(df.columns)
 
 # inserted_id = df['id'].loc[0]
 
@@ -87,12 +86,14 @@ logger.debug(df)
 # }
 # ans = requests.delete(base + 'contractors', json=params)
 
-{
-    "tables_to_glue": {
-        "objects": {
-            "remain_cols": ["id", "name"],
-            "left_on": "objects_id",
-            "right_on": "id"
-        }
-    }
-}
+# {
+#     "tables_to_glue": {
+#         "objects": {
+#             "remain_cols": ["id", "name"],
+#             "left_on": "objects_id",
+#             "right_on": "id"
+#         }
+#     }
+# }
+
+

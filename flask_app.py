@@ -223,6 +223,20 @@ def update_eks_clc_id(session, args):
         return response
 
 
+def update_mats_spc_id(session, args):
+    r_ek_basic_materials = tables['r_ek_basic_materials']
+    try:
+        session.query(r_ek_basic_materials).filter(r_ek_basic_materials.c['id'].in_(args['r_ek_basic_mats_ids'])).update({'spc_id': args['spc_id']})
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
 class Actions(Resource):
     @check_header
     def post(self, action_name, stage):
@@ -234,6 +248,8 @@ class Actions(Resource):
         logger.debug(args)
         if action_name == 'give_clc_id_to_ek':
             update_eks_clc_id(session, args)
+        if action_name == 'give_spc_id_to_material':
+            update_mats_spc_id(session, args)
         
 
 
@@ -245,17 +261,17 @@ class Actions(Resource):
 #     return ek
 
 
-def make_ek_materials_table(session, stage, ek_id):
-    ek = tables['ek']
-    columns = ek.columns.keys()
-    ek = session.query(ek).filter(ek.c['id']==ek_id).one()
-    ek = {c: v for c, v in zip(columns, ek)}
-    # logger.debug(ek)
-
+def make_est_materials_table(session, stage, est_id):
     est = tables['estimations']
     columns = est.columns.keys()
-    est = session.query(est).filter(est.c['id']==ek['estimation_id']).one()
+    est = session.query(est).filter(est.c['id']==est_id).one()
     est = {c: v for c, v in zip(columns, est)}
+
+    ek = tables['ek']
+    ek = session.query(ek).filter(
+        ek.c['estimation_id']==est_id)
+    ek = pd.read_sql(ek.statement, engine[stage])
+    
     # logger.debug(f'est: {est}')
 
     r_work_types_basic_materials = tables['r_work_types_basic_materials']
@@ -267,25 +283,39 @@ def make_ek_materials_table(session, stage, ek_id):
     # logger.debug(r_work_types_basic_materials)
 
     r_ek_basic_materials = tables['r_ek_basic_materials']
-    r_ek_basic_materials = session.query(r_ek_basic_materials).filter(r_ek_basic_materials.c['ek_id']==ek_id)
+    r_ek_basic_materials = session.query(r_ek_basic_materials).filter(r_ek_basic_materials.c['ek_id'].in_(ek.id))
     r_ek_basic_materials = pd.read_sql(r_ek_basic_materials.statement, engine[stage])
     r_ek_basic_materials = r_ek_basic_materials.merge(r_work_types_basic_materials, how='left', on='materials_id')
-    r_ek_basic_materials['volume'] = r_ek_basic_materials['consumption_rate'] * ek['volume']
+    # r_ek_basic_materials['volume'] = r_ek_basic_materials['consumption_rate'] * ek['volume']
     r_ek_basic_materials['is_basic'] = True
     
     r_ek_add_materials = tables['r_ek_add_materials']
-    r_ek_add_materials = session.query(r_ek_add_materials).filter(r_ek_add_materials.c['ek_id']==ek_id)
+    r_ek_add_materials = session.query(r_ek_add_materials).filter(r_ek_add_materials.c['ek_id'].in_(ek.id))
     r_ek_add_materials = pd.read_sql(r_ek_add_materials.statement, engine[stage])
     r_ek_add_materials['is_basic'] = False
 
     df = pd.concat([r_ek_basic_materials, r_ek_add_materials], axis=0)
+    logger.debug(df)
+    # raise Exception
+    materials = tables['materials']
+    materials = session.query(materials).filter(
+        materials.c['id'].in_(df['materials_id']))
+    materials = pd.read_sql(materials.statement, engine[stage])
+    logger.debug(materials)
 
-    mats = df.id.unique().tolist()
+    # logger.debug(r_work_types_basic_materials)
+    df = df.merge(materials, how='left', left_on='materials_id', right_on='id', suffixes=[None, '_mat'])
+    df = df.merge(ek, how='left', left_on='ek_id', right_on='id', suffixes=[None, '_ek'])
+    df['volume'].loc[df['is_basic']] = df['consumption_rate'] * df['volume_ek']
+    logger.debug(df)
+
+    mats = df.materials_id.unique().tolist()
     prices_history = tables['materials_prices_history']
     prices_history = session.query(prices_history).filter(
         prices_history.c['materials_id'].in_(mats),
         prices_history.c['objects_id']==est['objects_id']
     )
+
     prices_history = pd.read_sql(prices_history.statement, engine[stage])
     # Логику цен переделать!
     prices_history = prices_history[['materials_id', 'price']]
@@ -293,14 +323,16 @@ def make_ek_materials_table(session, stage, ek_id):
     df = df.merge(prices_history, how='left', left_on='id', right_on='materials_id', suffixes=[None, '_mph'])
     df['true_price'] = df['closed_price'].fillna(df['price'])
     df.drop(columns=['materials_id', 'price', 'materials_id_mph'], inplace=True)
+    logger.debug(df)
+    logger.debug(df.columns)
 
     return df
 
 
-# def debug_func():
-#     stage = 'production'
-#     session = Session(engine[stage])
-#     df = make_ek_table(session, stage, 2)
+def debug_func():
+    stage = 'production'
+    session = Session(engine[stage])
+    df = make_ek_materials_table(session, stage, 1)
 
 
 class SpecialTable(Resource):
@@ -312,8 +344,8 @@ class SpecialTable(Resource):
         args = parser.parse_args(strict=True)
         # logger.debug(args)
         session = Session(engine[stage])
-        if table_name == 'ek_mats':
-            df = make_ek_materials_table(session, stage, **args)
+        if table_name == 'est_mats':
+            df = make_est_materials_table(session, stage, **args)
         json_data = df.to_json(force_ascii=False, orient='records', date_format='iso')
         response = make_response(json_data, 200)
         response.headers["Content-Type"] = "application/json"
@@ -331,7 +363,7 @@ api.add_resource(Actions, '/clc/api/v1/actions/<action_name>')
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
     # debug_func()
     # df = build_expanded_table_v2()
     # build_expanded_table('ep', 'production')

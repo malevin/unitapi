@@ -19,20 +19,28 @@ from loguru import logger
 
 def build_actions_argparsers():
     parsers = {}
+
     parsers['give_clc_id_to_ek'] = reqparse.RequestParser()
     parsers['give_clc_id_to_ek'].add_argument(
         'ek_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
     parsers['give_clc_id_to_ek'].add_argument(
         'clc_id', required=False, nullable=True, store_missing=True, type=int, action='store')
+
+    parsers['give_spc_id_to_material'] = reqparse.RequestParser()
+    parsers['give_spc_id_to_material'].add_argument(
+        'r_ek_basic_mats_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    parsers['give_spc_id_to_material'].add_argument(
+        'spc_id', required=False, nullable=True, store_missing=True, type=int, action='store')
+        
     return parsers
 
 
 def build_spec_argparsers():
     parsers = {}
 
-    parsers['ek_mats'] = reqparse.RequestParser()
-    parsers['ek_mats'].add_argument(
-        'ek_id', required=True, nullable=False, store_missing=False, type=int)
+    parsers['est_mats'] = reqparse.RequestParser()
+    parsers['est_mats'].add_argument(
+        'est_id', required=True, nullable=False, store_missing=False, type=int)
 
     return parsers
 

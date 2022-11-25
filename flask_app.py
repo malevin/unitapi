@@ -32,7 +32,15 @@ creds = {
         "dbname": "dev_CLC"
     }
 }
-engine, tables = create_db_resources_v2(creds)
+auth_creds = {
+    "hostname": "194.67.116.213",
+    "port": "3306",
+    "username": "root",
+    "password": "zs$N7b*7F2Zq",
+    "dbname": "auth"
+}
+engine, tables, auth_engine, auth_tables = create_db_resources_v2(creds, auth_creds)
+
 tables_fields_argparsers = build_tables_fields_argparsers(engine['production'], tables, creds['production']['dbname'])
 spec_tables_argparsers = build_spec_argparsers()
 actions_argparsers = build_actions_argparsers()
@@ -245,12 +253,11 @@ class Actions(Resource):
         session = Session(engine[stage])
         parser = actions_argparsers[action_name]
         args = parser.parse_args(strict=True)
-        logger.debug(args)
+        # logger.debug(args)
         if action_name == 'give_clc_id_to_ek':
             update_eks_clc_id(session, args)
         if action_name == 'give_spc_id_to_material':
             update_mats_spc_id(session, args)
-        
 
 
 # def make_ek_details(session, stage, ek_id):
@@ -310,7 +317,7 @@ def make_est_materials_table(session, stage, est_id):
     # raise Exception
     logger.debug(df)
     df['volume'].loc[df['is_basic']] = df['consumption_rate'] * df['volume_ek']
-    logger.debug(df)
+    logger.debug(df.volume)
 
     mats = df.materials_id.unique().tolist()
     prices_history = tables['materials_prices_history']
@@ -355,6 +362,24 @@ class SpecialTable(Resource):
         return response
         
 
+
+
+class Auth(Resource):
+    def get(self):
+        session = Session(auth_engine)
+        parser = actions_argparsers['auth']
+        args = parser.parse_args(strict=True)
+        logger.debug(args)
+        table = auth_tables['users']
+        where_clauses = [table.c[key]==value for (key, value) in args.items()]
+        q = session.query(table).filter(*where_clauses)
+        check_for_empty_table(q, multiple_records_abort=True)
+        columns = table.columns.keys()
+        user = {c: v for c, v in zip(columns, q)}
+        logger.debug(user)
+        return '89a10379-1373-4a2e-b331-0adc36157443'
+
+
 app = Flask(__name__)
 app.json_provider_class = CustomJSONEncoder
 api = Api(app)
@@ -362,12 +387,13 @@ api.add_resource(Table, '/clc/api/v1/<table_name>')
 api.add_resource(TableExpanded, '/clc/api/v1/expanded/<table_name>')
 api.add_resource(SpecialTable, '/clc/api/v1/special/<table_name>')
 api.add_resource(Actions, '/clc/api/v1/actions/<action_name>')
+api.add_resource(Auth, '/auth')
 # Если таблицы нет, то выдает ошибку 500, нужно 404
 
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    debug_func()
+    app.run(debug=False)
+    # debug_func()
     # df = build_expanded_table_v2()
     # build_expanded_table('ep', 'production')
 

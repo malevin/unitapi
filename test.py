@@ -9,6 +9,7 @@ import json
 
 # raise Exception
 base = 'http://127.0.0.1:5000/clc/api/v1/'
+auth_base = 'http://127.0.0.1:5000/auth'
 # base = 'http://unitapi.malevin.com/'
 key = '89a10379-1373-4a2e-b331-0adc36157443'
 # key = '89a10379-1373-4a2e-b336157443'
@@ -26,13 +27,14 @@ requests.delete = print_ans_decorator(requests.delete)
 requests.put = print_ans_decorator(requests.put)
 
 headers = {
-    'key': key,
-    'stage': 'production',
-    # 'Content-Type': 'application/json'
+    # 'name': 'admin',
+    # 'pin_code': 'admin_pwd',
+    # # 'Content-Type': 'application/json'
 }
 
 params = {
-    'est_id': 2
+    'name': 'admin',
+    'pin_code': 'admin_pwd',
 }
 
 # data = """
@@ -51,7 +53,7 @@ params = {
 # """
 
 # response = requests.post(base + 'special/ek_mats', data=data.encode('utf-8'), headers=headers)
-response = requests.get(base + 'special/est_mats', headers=headers, json=params)
+response = requests.get(auth_base, headers=headers, json=params)
 
 # input()
 # response = requests.get(base + 'contractors', json={}, headers=headers)

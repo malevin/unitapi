@@ -31,7 +31,15 @@ def build_actions_argparsers():
         'r_ek_basic_mats_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
     parsers['give_spc_id_to_material'].add_argument(
         'spc_id', required=False, nullable=True, store_missing=True, type=int, action='store')
-        
+
+    parsers['auth'] = reqparse.RequestParser()
+    parsers['auth'].add_argument(
+        'name', required=True, nullable=False, store_missing=False, type=str)
+    parsers['auth'].add_argument(
+
+        'pin_code', required=False, nullable=True, store_missing=True, type=str)
+
+    
     return parsers
 
 
@@ -45,7 +53,13 @@ def build_spec_argparsers():
     return parsers
 
     
-def create_db_resources_v2(creds):
+def create_db_resources_v2(creds, auth_creds):
+    conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**auth_creds)
+    auth_engine = create_engine(conn_str, echo=False)
+    Base = automap_base()
+    Base.prepare(auth_engine, reflect=True)
+    auth_tables = Base.metadata.tables
+
     engine = {}
     for k, v in creds.items():
         conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**v)
@@ -53,7 +67,7 @@ def create_db_resources_v2(creds):
     Base = automap_base()
     Base.prepare(engine['production'], reflect=True)
     tables = Base.metadata.tables
-    return engine, tables
+    return engine, tables, auth_engine, auth_tables
 
 
 class CustomJSONEncoder(JSONEncoder):

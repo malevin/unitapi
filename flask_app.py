@@ -275,17 +275,15 @@ def make_est_materials_table(session, stage, est_id):
     # logger.debug(f'est: {est}')
 
     r_work_types_basic_materials = tables['r_work_types_basic_materials']
-    r_work_types_basic_materials = session.query(r_work_types_basic_materials).with_entities(
-        r_work_types_basic_materials.c['materials_id'], r_work_types_basic_materials.c['consumption_rate']
-    ).filter(
-        r_work_types_basic_materials.c['work_types_id']==ek['work_types_id'])
+    r_work_types_basic_materials = session.query(r_work_types_basic_materials).filter(
+        r_work_types_basic_materials.c['work_types_id'].in_(ek['work_types_id']))
     r_work_types_basic_materials = pd.read_sql(r_work_types_basic_materials.statement, engine[stage])
     # logger.debug(r_work_types_basic_materials)
 
     r_ek_basic_materials = tables['r_ek_basic_materials']
     r_ek_basic_materials = session.query(r_ek_basic_materials).filter(r_ek_basic_materials.c['ek_id'].in_(ek.id))
     r_ek_basic_materials = pd.read_sql(r_ek_basic_materials.statement, engine[stage])
-    r_ek_basic_materials = r_ek_basic_materials.merge(r_work_types_basic_materials, how='left', on='materials_id')
+    # r_ek_basic_materials = r_ek_basic_materials.merge(r_work_types_basic_materials, how='left', on='materials_id')
     # r_ek_basic_materials['volume'] = r_ek_basic_materials['consumption_rate'] * ek['volume']
     r_ek_basic_materials['is_basic'] = True
     
@@ -295,6 +293,7 @@ def make_est_materials_table(session, stage, est_id):
     r_ek_add_materials['is_basic'] = False
 
     df = pd.concat([r_ek_basic_materials, r_ek_add_materials], axis=0)
+
     logger.debug(df)
     # raise Exception
     materials = tables['materials']
@@ -306,6 +305,10 @@ def make_est_materials_table(session, stage, est_id):
     # logger.debug(r_work_types_basic_materials)
     df = df.merge(materials, how='left', left_on='materials_id', right_on='id', suffixes=[None, '_mat'])
     df = df.merge(ek, how='left', left_on='ek_id', right_on='id', suffixes=[None, '_ek'])
+    logger.debug(df.columns)
+    df = df.merge(r_work_types_basic_materials, how='left', left_on=['work_types_id', 'materials_id'], right_on=['work_types_id', 'materials_id'])
+    # raise Exception
+    logger.debug(df)
     df['volume'].loc[df['is_basic']] = df['consumption_rate'] * df['volume_ek']
     logger.debug(df)
 
@@ -332,7 +335,7 @@ def make_est_materials_table(session, stage, est_id):
 def debug_func():
     stage = 'production'
     session = Session(engine[stage])
-    df = make_ek_materials_table(session, stage, 1)
+    df = make_est_materials_table(session, stage, 1)
 
 
 class SpecialTable(Resource):
@@ -363,8 +366,8 @@ api.add_resource(Actions, '/clc/api/v1/actions/<action_name>')
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
-    # debug_func()
+    # app.run(debug=True)
+    debug_func()
     # df = build_expanded_table_v2()
     # build_expanded_table('ep', 'production')
 

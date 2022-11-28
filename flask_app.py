@@ -12,7 +12,7 @@ from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
 from datetime import date, datetime
 from flask.json import JSONEncoder
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from api_modules import build_tables_fields_argparsers, create_db_resources_v2, CustomJSONEncoder, build_spec_argparsers, build_actions_argparsers
 # from sqlalchemy.orm imposrt declarative_base
 
@@ -59,6 +59,20 @@ def check_header(function=None):
         kwargs['stage'] = h['Stage']
         res = function(*args, **kwargs)
         return res
+    return wrapper
+
+
+def check_token(function=None):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        h = dict(request.headers)
+        if 'Token' not in h:
+            abort(400, message='Missing token in headers')
+        try:
+            jwt.decode(h['Token'], KEY, algorithms="HS256")
+            return jsonify({"message": "Token is valid"})
+        except Exception as error:
+            abort(401, message=str(error))
     return wrapper
 
 
@@ -362,11 +376,13 @@ class SpecialTable(Resource):
         response = make_response(json_data, 200)
         response.headers["Content-Type"] = "application/json"
         return response
-        
-
 
 
 class Auth(Resource):
+    @check_token
+    def post(self):
+        pass
+
     def get(self):
         session = Session(auth_engine)
         parser = actions_argparsers['auth']
@@ -395,10 +411,11 @@ class Auth(Resource):
         payload_data = {
             "name": user["name"],
             "roles": user_roles, 
-            "exp": datetime.now() + timedelta(seconds=30)
+            "exp": datetime.now(timezone.utc) + timedelta(seconds=10)
         }
         token = jwt.encode(payload_data, KEY)
         return token
+    
 
 
 

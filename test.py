@@ -5,27 +5,28 @@ from loguru import logger
 import pandas as pd
 import json
 import jwt
-import datetime
+from datetime import datetime
+import time
 
 # logger.debug(entities)
 
 
-your_timestamp = 1669643004
-date = datetime.fromtimestamp(your_timestamp)
-logger.debug(date)
-raise Exception
+# your_timestamp = 1669643004
+# date = datetime.utcfromtimestamp(your_timestamp)
+# logger.debug(date)
+# raise Exception
 
 
 
-token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJyb2xlcyI6WyJhZG1pbiIsImRpcmVjdG9yIl0sImV4cCI6MTY2OTY0MzAwNH0.RxSrq31bGz7Ywy6V6RWsbLH-Mxx7SDGNrmYSIJ2KW6A'
-# decoded = jwt.decode(token, options={"verify_signature": False})
-KEY = '89a10379-1373-4a2e-b331-0adc36157443'
-try:
-    d = jwt.decode(token, KEY, algorithms="HS256")
-    logger.debug(d)
-except jwt.exceptions.InvalidSignatureError:
-    logger.error('Подпиь неверна')
-raise Exception
+# token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJyb2xlcyI6WyJhZG1pbiIsImRpcmVjdG9yIl0sImV4cCI6MTY2OTY0MzAwNH0.RxSrq31bGz7Ywy6V6RWsbLH-Mxx7SDGNrmYSIJ2KW6A'
+# # decoded = jwt.decode(token, options={"verify_signature": False})
+# KEY = '89a10379-1373-4a2e-b331-0adc36157443'
+# try:
+#     d = jwt.decode(token, KEY, algorithms="HS256", options={"verify_exp": False})
+#     logger.debug(d)
+# except jwt.exceptions.InvalidSignatureError:
+#     logger.error('Подпиь неверна')
+# raise Exception
 
 
 # raise Exception
@@ -55,7 +56,7 @@ headers = {
 }
 
 params = {
-    'name': 'admin',
+    'name': 'Borodin Igor',
     'pin_code': 'admin_pwd',
 }
 
@@ -77,6 +78,26 @@ params = {
 # response = requests.post(base + 'special/ek_mats', data=data.encode('utf-8'), headers=headers)
 response = requests.get(auth_base, headers=headers, json=params)
 
+token = response.json()
+
+# token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJyb2xlcyI6WyJhZG1pbiIsImRpcmVjdG9yIl0sImV4cCI6MTY2OTY0MzAwNH0.RxSrq31bGz7Ywy6V6RWsbLH-Mxx7SDGNrmYSIJ2KW6A'
+# decoded = jwt.decode(token, options={"verify_signature": False})
+KEY = '89a10379-1373-4a2e-b331-0adc36157443'
+try:
+    d = jwt.decode(token, KEY, algorithms="HS256")
+    date = datetime.utcfromtimestamp(d['exp'])
+
+    logger.debug(date)
+except jwt.exceptions.InvalidSignatureError:
+    logger.exception('Подпиь неверна')
+
+# time.sleep(20)
+
+response = requests.post(auth_base, headers={'Token': token})
+
+# raise Exception
+
+# date = datetime.utcfromtimestamp(your_timestamp)
 
 # input()
 # response = requests.get(base + 'contractors', json={}, headers=headers)

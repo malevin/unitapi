@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, make_response, request
 from flask_restful import Resource, Api, reqparse, abort
 from loguru import logger
+import jwt
 from functools import wraps
 import pandas as pd
 import numpy as np
@@ -11,6 +12,7 @@ from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
 from datetime import date, datetime
 from flask.json import JSONEncoder
+from datetime import datetime, timedelta
 from api_modules import build_tables_fields_argparsers, create_db_resources_v2, CustomJSONEncoder, build_spec_argparsers, build_actions_argparsers
 # from sqlalchemy.orm imposrt declarative_base
 
@@ -372,12 +374,32 @@ class Auth(Resource):
         logger.debug(args)
         table = auth_tables['users']
         where_clauses = [table.c[key]==value for (key, value) in args.items()]
-        q = session.query(table).filter(*where_clauses)
-        check_for_empty_table(q, multiple_records_abort=True)
+        result = session.query(table).filter(*where_clauses)
+        check_for_empty_table(result, multiple_records_abort=True)
         columns = table.columns.keys()
-        user = {c: v for c, v in zip(columns, q)}
+        user = {c: v for c, v in zip(columns, result[0])}
         logger.debug(user)
-        return '89a10379-1373-4a2e-b331-0adc36157443'
+
+        table = auth_tables['r_users_roles']
+        columns = table.columns.keys()
+        result = session.query(table).filter(table.c['user_id'] == user['id'])
+        user_roles_ids = [v for row in result for c, v in zip(columns, row) if c == 'role_id']
+        # roles_ids = [row['role_id'] for row in user_roles]
+        logger.debug(user_roles_ids)
+
+        table = auth_tables['roles']
+        columns = table.columns.keys()
+        result = session.query(table).filter(table.c['id'].in_(user_roles_ids))
+        user_roles = [v for row in result for c, v in zip(columns, row) if c == 'name']
+        logger.debug(user_roles)
+        payload_data = {
+            "name": user["name"],
+            "roles": user_roles, 
+            "exp": datetime.now() + timedelta(seconds=30)
+        }
+        token = jwt.encode(payload_data, KEY)
+        return token
+
 
 
 app = Flask(__name__)
@@ -393,9 +415,7 @@ api.add_resource(Auth, '/auth')
 
 if __name__ == '__main__':
     app.run(debug=False)
-    # debug_func()
-    # df = build_expanded_table_v2()
-    # build_expanded_table('ep', 'production')
+
 
 
 

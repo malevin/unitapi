@@ -36,9 +36,7 @@ def build_actions_argparsers():
     parsers['auth'].add_argument(
         'name', required=True, nullable=False, store_missing=False, type=str)
     parsers['auth'].add_argument(
-
         'pin_code', required=False, nullable=True, store_missing=True, type=str)
-
     
     return parsers
 

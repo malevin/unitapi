@@ -57,8 +57,8 @@ headers = {
 }
 
 params = {
-    'email': 'b.igor.work21@gmail.com',
-    'password': '009186',
+    'email': 'semenuta87@gmail.com',
+    'password': '700037',
 }
 
 # data = """

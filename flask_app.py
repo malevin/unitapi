@@ -368,7 +368,6 @@ class SpecialTable(Resource):
             abort(404, message='Special table not found')
         parser = spec_tables_argparsers[table_name]
         args = parser.parse_args(strict=True)
-        # logger.debug(args)
         session = Session(engine[stage])
         if table_name == 'est_mats':
             df = make_est_materials_table(session, stage, **args)
@@ -387,7 +386,7 @@ class Auth(Resource):
         session = Session(auth_engine)
         parser = actions_argparsers['auth']
         args = parser.parse_args(strict=True)
-        logger.debug(args)
+        # logger.debug(args)
         table = auth_tables['users']
         query = session.query(table).filter(table.c['email']==args['email'])
         if query.count() == 0:
@@ -430,6 +429,8 @@ api.add_resource(Auth, '/auth')
 
 if __name__ == '__main__':
     app.run(debug=False)
+
+
 
 
 

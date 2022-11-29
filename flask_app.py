@@ -12,6 +12,7 @@ from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
 from datetime import date, datetime
 from flask.json import JSONEncoder
+from bcrypt import checkpw
 from datetime import datetime, timedelta, timezone
 from api_modules import build_tables_fields_argparsers, create_db_resources_v2, CustomJSONEncoder, build_spec_argparsers, build_actions_argparsers
 # from sqlalchemy.orm imposrt declarative_base
@@ -39,7 +40,7 @@ auth_creds = {
     "port": "3306",
     "username": "root",
     "password": "zs$N7b*7F2Zq",
-    "dbname": "auth"
+    "dbname": "auth_db"
 }
 engine, tables, auth_engine, auth_tables = create_db_resources_v2(creds, auth_creds)
 
@@ -51,7 +52,6 @@ def check_header(function=None):
     @wraps(function)
     def wrapper(*args, **kwargs):
         h = dict(request.headers)
-        # logger.debug(h)
         if 'Key' not in h or h['Key'] != KEY:
             abort(401, message='Unauthorized')
         if 'Stage' not in h or h['Stage'] not in ['development', 'production']:
@@ -389,19 +389,19 @@ class Auth(Resource):
         args = parser.parse_args(strict=True)
         logger.debug(args)
         table = auth_tables['users']
-        where_clauses = [table.c[key]==value for (key, value) in args.items()]
-        result = session.query(table).filter(*where_clauses)
-        check_for_empty_table(result, multiple_records_abort=True)
+        query = session.query(table).filter(table.c['email']==args['email'])
+        if query.count() == 0:
+            abort(401, message='Invalid email or password')
         columns = table.columns.keys()
-        user = {c: v for c, v in zip(columns, result[0])}
+        user = {c: v for c, v in zip(columns, query[0])}
         logger.debug(user)
+        if not checkpw(args['password'].encode('utf8'), user['password'].encode('utf-8')):
+            abort(401, message='Invalid email or password')
 
         table = auth_tables['r_users_roles']
         columns = table.columns.keys()
         result = session.query(table).filter(table.c['user_id'] == user['id'])
         user_roles_ids = [v for row in result for c, v in zip(columns, row) if c == 'role_id']
-        # roles_ids = [row['role_id'] for row in user_roles]
-        logger.debug(user_roles_ids)
 
         table = auth_tables['roles']
         columns = table.columns.keys()
@@ -411,12 +411,10 @@ class Auth(Resource):
         payload_data = {
             "name": user["name"],
             "roles": user_roles, 
-            "exp": datetime.now(timezone.utc) + timedelta(seconds=10)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=16)
         }
         token = jwt.encode(payload_data, KEY)
         return token
-    
-
 
 
 app = Flask(__name__)

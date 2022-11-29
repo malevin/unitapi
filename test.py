@@ -33,6 +33,7 @@ import time
 base = 'http://127.0.0.1:5000/clc/api/v1/'
 auth_base = 'http://127.0.0.1:5000/auth'
 # base = 'http://unitapi.malevin.com/'
+# auth_base = 'http://unitapi.malevin.com/auth'
 key = '89a10379-1373-4a2e-b331-0adc36157443'
 
 # key = '89a10379-1373-4a2e-b336157443'
@@ -56,8 +57,8 @@ headers = {
 }
 
 params = {
-    'name': 'Borodin Igor',
-    'pin_code': 'admin_pwd',
+    'email': 'b.igor.work21@gmail.com',
+    'password': '009186',
 }
 
 # data = """
@@ -78,22 +79,22 @@ params = {
 # response = requests.post(base + 'special/ek_mats', data=data.encode('utf-8'), headers=headers)
 response = requests.get(auth_base, headers=headers, json=params)
 
-token = response.json()
+# token = response.json()
 
 # token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJyb2xlcyI6WyJhZG1pbiIsImRpcmVjdG9yIl0sImV4cCI6MTY2OTY0MzAwNH0.RxSrq31bGz7Ywy6V6RWsbLH-Mxx7SDGNrmYSIJ2KW6A'
 # decoded = jwt.decode(token, options={"verify_signature": False})
-KEY = '89a10379-1373-4a2e-b331-0adc36157443'
-try:
-    d = jwt.decode(token, KEY, algorithms="HS256")
-    date = datetime.utcfromtimestamp(d['exp'])
+# KEY = '89a10379-1373-4a2e-b331-0adc36157443'
+# try:
+#     d = jwt.decode(token, KEY, algorithms="HS256")
+#     date = datetime.utcfromtimestamp(d['exp'])
 
-    logger.debug(date)
-except jwt.exceptions.InvalidSignatureError:
-    logger.exception('Подпиь неверна')
+#     logger.debug(date)
+# except jwt.exceptions.InvalidSignatureError:
+#     logger.exception('Подпиь неверна')
 
 # time.sleep(20)
 
-response = requests.post(auth_base, headers={'Token': token})
+# response = requests.post(auth_base, headers={'Token': token})
 
 # raise Exception
 

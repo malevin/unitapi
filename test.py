@@ -27,7 +27,7 @@ token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiXHUwNDE4XHUwNDMzXHUwND
 # auth_base = 'http://127.0.0.1:5000/auth'
 # base = 'http://unitapi.malevin.com/'
 # auth_base = 'http://unitapi.malevin.com/auth'
-path = 'http://127.0.0.1:5000/execute_sql/clc'
+path = 'http://unitapi.malevin.com/execute_sql/clc'
 # key = '89a10379-1373-4a2e-b331-0adc36157443'
 
 def print_ans_decorator(func):
@@ -44,26 +44,26 @@ requests.put = print_ans_decorator(requests.put)
 
 headers = {
     'Token': token,
-    'Stage': 'production',
+    'Stage': 'development',
     # 'Content-Type': 'application/json'
 }
 
 params = {
     'query': [
-        'select * from acts',
-        # '''CREATE TABLE `test` (
-        # `test_col` varchar(255) UNIQUE NOT NULL
-        # )''',
-        # 'alter table test add column surname_test varchar(255)',
-        'drop database unit_clc',
-    ],
+        'selEct * from acts',
+        '''CREATE TABLE `test` (
+        `test_col` varchar(255) UNIQUE NOT NULL
+        )''',
+        'alter table test add column surname_test varchar(255)',
+        'drop table test'
+    ]
 }
 
 # response = requests.post(base + 'special/ek_mats', data=data.encode('utf-8'), headers=headers)
 response = requests.post(path, headers=headers, json=params)
 
-ans = response.json()
+# ans = response.json()
 
-logger.debug(ans[1])
+# logger.debug(ans[1])
 
 

@@ -461,8 +461,9 @@ class SQL_execute(Resource):
         ans = []
         with eng.connect() as con:
             for q in qs:
-                if q.lower().startswith('select'):
-                    ans.append({'query': q, 'success': False, 'error': 'Select queries are not allowed'})
+                is_allowed = q.lower().startswith(('select', 'update', 'insert', 'delete'))
+                if not is_allowed:
+                    ans.append({'query': q, 'success': False, 'error': 'SELECT, UPDATE, INSERT and DELETE queries are not allowed'})
                     continue
                 try:
                     rs = con.execute(text(q))

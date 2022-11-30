@@ -461,8 +461,8 @@ class SQL_execute(Resource):
         ans = []
         with eng.connect() as con:
             for q in qs:
-                is_allowed = q.lower().startswith(('select', 'update', 'insert', 'delete'))
-                if not is_allowed:
+                not_allowed = q.lower().startswith(('select', 'update', 'insert', 'delete'))
+                if not_allowed:
                     ans.append({'query': q, 'success': False, 'error': 'SELECT, UPDATE, INSERT and DELETE queries are not allowed'})
                     continue
                 try:

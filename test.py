@@ -50,7 +50,7 @@ headers = {
 
 params = {
     'query': [
-        'selEct * from acts',
+        'update * from acts',
         '''CREATE TABLE `test` (
         `test_col` varchar(255) UNIQUE NOT NULL
         )''',

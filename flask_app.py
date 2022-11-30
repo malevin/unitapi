@@ -6,6 +6,7 @@ from functools import wraps
 import pandas as pd
 import numpy as np
 from sqlalchemy.orm import Session, load_only
+from sqlalchemy.sql import text
 import json
 from sqlalchemy import create_engine, inspect
 from flask_restful import reqparse
@@ -62,6 +63,25 @@ def check_header(function=None):
     return wrapper
 
 
+def check_developers_token(function=None):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        h = dict(request.headers)
+        if 'Token' not in h:
+            abort(400, message='Missing token in headers')
+        try:
+            res = jwt.decode(h['Token'], KEY, algorithms="HS256")
+            logger.debug(res)
+            # jwt.decode(token, KEY, algorithms="HS256", options={"verify_exp": False})
+        except Exception as error:
+            abort(401, message=f'Error: {str(error)}')
+        if "Разработчик" not in res['roles']:
+                abort(401, message='Request is allowed only for developers')
+        res = function(*args, **kwargs)
+        return res
+    return wrapper
+
+
 def check_token(function=None):
     @wraps(function)
     def wrapper(*args, **kwargs):
@@ -70,9 +90,11 @@ def check_token(function=None):
             abort(400, message='Missing token in headers')
         try:
             jwt.decode(h['Token'], KEY, algorithms="HS256")
-            return jsonify({"message": "Token is valid"})
+            # return jsonify({"message": "Token is valid"})
         except Exception as error:
             abort(401, message=str(error))
+        res = function(*args, **kwargs)
+        return res
     return wrapper
 
 
@@ -380,7 +402,7 @@ class SpecialTable(Resource):
 class Auth(Resource):
     @check_token
     def post(self):
-        pass
+        return jsonify({"message": "Token is valid"})
 
     def get(self):
         session = Session(auth_engine)
@@ -416,6 +438,41 @@ class Auth(Resource):
         return token
 
 
+class SQL_execute(Resource):
+    @check_developers_token
+    def post(self, database):
+        parser = actions_argparsers['sql']
+        args = parser.parse_args(strict=True)
+        qs = args['query']
+        qs = [qs] if type(qs) == str else qs
+        h = dict(request.headers)
+        if database in ['clc']:
+            if 'Stage' not in h or h['Stage'] not in ['development', 'production']:
+                abort(400, message="Specify stage of the project: development (for tests) or production. Note that if you work with special database for development tables' properties are still from real database. Watch both to have equal schemas for proper testing. Only data may differ.")
+        elif database == 'auth':
+            if 'Stage' in h:
+                abort(400, message="Database 'auth' does not have a copy for development. Do not specify stage.")
+        if database == 'auth':
+            eng = auth_engine
+        elif database == 'clc':
+            eng = engine[h['Stage']]
+        else:
+            abort(400, message='Unknown database')
+        ans = []
+        with eng.connect() as con:
+            for q in qs:
+                if q.lower().startswith('select'):
+                    ans.append({'query': q, 'success': False, 'error': 'Select queries are not allowed'})
+                    continue
+                try:
+                    rs = con.execute(text(q))
+                    ans.append({'query': q, 'success': True, 'error': None})
+                except Exception as error:
+                    logger.error('Ошибка при выполнении запроса')
+                    ans.append({'query': q, 'success': False, 'error': str(error)})
+        return jsonify(ans)
+
+
 app = Flask(__name__)
 app.json_provider_class = CustomJSONEncoder
 api = Api(app)
@@ -424,6 +481,7 @@ api.add_resource(TableExpanded, '/clc/api/v1/expanded/<table_name>')
 api.add_resource(SpecialTable, '/clc/api/v1/special/<table_name>')
 api.add_resource(Actions, '/clc/api/v1/actions/<action_name>')
 api.add_resource(Auth, '/auth')
+api.add_resource(SQL_execute, '/execute_sql/<database>')
 # Если таблицы нет, то выдает ошибку 500, нужно 404
 
 

@@ -37,6 +37,10 @@ def build_actions_argparsers():
         'email', required=True, nullable=False, store_missing=False, type=str)
     parsers['auth'].add_argument(
         'password', required=True, nullable=False, store_missing=False, type=str)
+
+    parsers['sql'] = reqparse.RequestParser()
+    parsers['sql'].add_argument(
+        'query', required=True, nullable=False, store_missing=False, type=str, action='append')
     
     return parsers
 

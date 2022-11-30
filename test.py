@@ -17,26 +17,18 @@ import time
 # raise Exception
 
 
-
-# token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJyb2xlcyI6WyJhZG1pbiIsImRpcmVjdG9yIl0sImV4cCI6MTY2OTY0MzAwNH0.RxSrq31bGz7Ywy6V6RWsbLH-Mxx7SDGNrmYSIJ2KW6A'
-# # decoded = jwt.decode(token, options={"verify_signature": False})
-# KEY = '89a10379-1373-4a2e-b331-0adc36157443'
-# try:
-#     d = jwt.decode(token, KEY, algorithms="HS256", options={"verify_exp": False})
-#     logger.debug(d)
-# except jwt.exceptions.InvalidSignatureError:
-#     logger.error('Подпиь неверна')
-# raise Exception
-
+# разработчик
+token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiXHUwNDE4XHUwNDMzXHUwNDNlXHUwNDQwXHUwNDRjIFx1MDQxMVx1MDQzZVx1MDQ0MFx1MDQzZVx1MDQzNFx1MDQzOFx1MDQzZCIsInJvbGVzIjpbIlx1MDQyMFx1MDQzMFx1MDQzN1x1MDQ0MFx1MDQzMFx1MDQzMVx1MDQzZVx1MDQ0Mlx1MDQ0N1x1MDQzOFx1MDQzYSJdLCJleHAiOjE2Njk4NDA2ODh9.4q829Jw5LX7lipcJUuXgnw1FHJp1uiHbWqHMUZHm8CQ'
+# Никто
+# token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiXHUwNDEyXHUwNDMwXHUwNDQxXHUwNDRmIFx1MDQxZlx1MDQ0M1x1MDQzZlx1MDQzYVx1MDQzOFx1MDQzZCIsInJvbGVzIjpbIlx1MDQxZFx1MDQzOFx1MDQzYVx1MDQ0Mlx1MDQzZSJdLCJleHAiOjE2Njk4NDE5MjF9.YsrkPbUrOodzKXP_tjyG_pGCe0r2XuqJ6vN5MLhabOk'
 
 # raise Exception
-base = 'http://127.0.0.1:5000/clc/api/v1/'
-auth_base = 'http://127.0.0.1:5000/auth'
+# base = 'http://127.0.0.1:5000/clc/api/v1/'
+# auth_base = 'http://127.0.0.1:5000/auth'
 # base = 'http://unitapi.malevin.com/'
 # auth_base = 'http://unitapi.malevin.com/auth'
-key = '89a10379-1373-4a2e-b331-0adc36157443'
-
-# key = '89a10379-1373-4a2e-b336157443'
+path = 'http://127.0.0.1:5000/execute_sql/clc'
+# key = '89a10379-1373-4a2e-b331-0adc36157443'
 
 def print_ans_decorator(func):
     def wrapper(*args, **kwargs):
@@ -51,96 +43,27 @@ requests.delete = print_ans_decorator(requests.delete)
 requests.put = print_ans_decorator(requests.put)
 
 headers = {
-    # 'name': 'admin',
-    # 'pin_code': 'admin_pwd',
-    # # 'Content-Type': 'application/json'
+    'Token': token,
+    'Stage': 'production',
+    # 'Content-Type': 'application/json'
 }
 
 params = {
-    'email': 'semenuta87@gmail.com',
-    'password': '700037',
+    'query': [
+        'select * from acts',
+        # '''CREATE TABLE `test` (
+        # `test_col` varchar(255) UNIQUE NOT NULL
+        # )''',
+        # 'alter table test add column surname_test varchar(255)',
+        'drop database unit_clc',
+    ],
 }
 
-# data = """
-# {
-#     "tables_to_glue": {
-#         "contracts": {
-#             "remain_cols": ["id","name", "number", "date"],
-#             "left_on": "contracts_id",
-#             "right_on": "id"
-#         }
-#     },
-#     "filter_by": {
-#         "estimation_id": 1
-#     }
-# }
-# """
-
 # response = requests.post(base + 'special/ek_mats', data=data.encode('utf-8'), headers=headers)
-response = requests.get(auth_base, headers=headers, json=params)
+response = requests.post(path, headers=headers, json=params)
 
-# token = response.json()
+ans = response.json()
 
-# token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiYWRtaW4iLCJyb2xlcyI6WyJhZG1pbiIsImRpcmVjdG9yIl0sImV4cCI6MTY2OTY0MzAwNH0.RxSrq31bGz7Ywy6V6RWsbLH-Mxx7SDGNrmYSIJ2KW6A'
-# decoded = jwt.decode(token, options={"verify_signature": False})
-# KEY = '89a10379-1373-4a2e-b331-0adc36157443'
-# try:
-#     d = jwt.decode(token, KEY, algorithms="HS256")
-#     date = datetime.utcfromtimestamp(d['exp'])
-
-#     logger.debug(date)
-# except jwt.exceptions.InvalidSignatureError:
-#     logger.exception('Подпиь неверна')
-
-# time.sleep(20)
-
-# response = requests.post(auth_base, headers={'Token': token})
-
-# raise Exception
-
-# date = datetime.utcfromtimestamp(your_timestamp)
-
-# input()
-# response = requests.get(base + 'contractors', json={}, headers=headers)
-
-# ans = response.json()
-# logger.debug(type(ans['data']))
-# logger.debug(ans)
-# logger.debug(type(ans))
-# df = pd.DataFrame(ans)
-# logger.debug(df)
-# logger.debug(df.columns)
-
-# inserted_id = df['id'].loc[0]
-
-# input()
-
-# params = {
-
-# }
-# response = requests.get(base + 'contractors', json=params, headers=headers) # , verify=False
-
-# ans = response.json()
-# df = pd.DataFrame(ans['data'])
-# logger.debug(df)
-
-
-
-
-
-# params = {
-#     'id': int(inserted_id),
-# }
-# ans = requests.delete(base + 'contractors', json=params)
-
-# {
-#     "tables_to_glue": {
-#         "objects": {
-#             "remain_cols": ["id", "name"],
-#             "left_on": "objects_id",
-#             "right_on": "id"
-#         }
-#     }
-# }
+logger.debug(ans[1])
 
 

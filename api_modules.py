@@ -82,8 +82,8 @@ def create_db_resources_v3(creds):
     inspectors = copy.deepcopy(creds)
     for product, dbs in creds.items():
         # ___________________
-        if product not in ['clc', 'auth']:
-            continue
+        # if product not in ['clc', 'auth']:
+        #     continue
         # ___________________
         for db, data in dbs.items():
             # logger.debug(f'{product} - {db} - {data}')
@@ -120,8 +120,8 @@ def build_init_tables_argparsers(engines, tables, creds):
     tables_fields_argparsers = copy.deepcopy(creds)
     for product, dbs in engines.items():
         # ___________________
-        if product not in ['clc', 'auth']:
-            continue
+        # if product not in ['clc', 'auth']:
+        #     continue
         # ___________________
         for db, eng in dbs.items():
             tables_fields_argparsers[product][db] = {}

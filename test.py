@@ -39,8 +39,8 @@ token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiXHUwNDE4XHUwNDMzXHUwND
 # raise Exception
 base = 'http://127.0.0.1:5000/api/v1'
 
-auth_base = 'http://127.0.0.1:5000/api/v1/auth'
-# base = 'http://unitapi.malevin.com/'
+# auth_base = 'http://127.0.0.1:5000/api/v1/auth'
+# base = 'http://unitapi.malevin.com/api/v1'
 # auth_base = 'http://unitapi.malevin.com/auth'
 # path = 'http://unitapi.malevin.com/execute_sql/clc'
 # key = '89a10379-1373-4a2e-b331-0adc36157443'
@@ -64,12 +64,12 @@ data = """
 }
 """
 params = {
-    'est_id': 1
+    'without_sum': 1
 }
 
 # , data=data.encode('utf-8')
-# response = requests.get(base + '/uu/scandia/expanded/contracts_expanded', headers=headers, params=params)
-response = requests.get(base + '/clc/production/special/est_mats', headers=headers, json=params)
+response = requests.get(base + '/uu/scandia/expanded/contracts_expanded', headers=headers, params=params)
+# response = requests.get(base + '/clc/production/special/est_mats', headers=headers, json=params)
 # /api/v1/clc/<db>/actions/<action_name>
 # response = requests.post(base + '/uu/scandia/expanded/contracts', headers=headers, data=data.encode('utf-8'))
 # logger.
@@ -81,8 +81,8 @@ response = requests.get(base + '/clc/production/special/est_mats', headers=heade
 # response = requests.get(base + '/uu/scandia/initial/objects', headers=headers, json={})
 # response = requests.get(auth_base, headers={}, json=params)
 
-# ans = response.json()
-# df = pd.DataFrame(ans)
-# logger.debug(df)
+ans = response.json()
+df = pd.DataFrame(ans)
+logger.debug(df)
 
 

@@ -286,8 +286,9 @@ class TableExpanded(Resource):
         with eng.connect() as con:
             result = con.execute(text(definition))
             res = [dict(r) for r in result]
-            filtered_res = [r for r in res for k, v in psr_args.items() if str(r[k]) == v]
-            return jsonify(filtered_res)
+            if len(psr_args) != 0:
+                res = [r for r in res for k, v in psr_args.items() if str(r[k]) == v]
+            return jsonify(res)
 
     @check_token
     @get_expanded_table_args_post

@@ -525,43 +525,34 @@ class Auth(Resource):
             "exp": datetime.now(timezone.utc) + timedelta(hours=16)
         }
         token = jwt.encode(payload_data, KEY)
-        return token
+        return token, 200
 
 
-# class SQL_execute(Resource):
-#     @check_developers_token
-#     def post(self, database):
-#         parser = actions_argparsers['sql']
-#         args = parser.parse_args(strict=True)
-#         qs = args['query']
-#         qs = [qs] if type(qs) == str else qs
-#         h = dict(request.headers)
-#         if database in ['clc']:
-#             if 'Stage' not in h or h['Stage'] not in ['development', 'production']:
-#                 abort(400, message="Specify stage of the project: development (for tests) or production. Note that if you work with special database for development tables' properties are still from real database. Watch both to have equal schemas for proper testing. Only data may differ.")
-#         elif database == 'auth':
-#             if 'Stage' in h:
-#                 abort(400, message="Database 'auth' does not have a copy for development. Do not specify stage.")
-#         if database == 'auth':
-#             eng = auth_engine
-#         elif database == 'clc':
-#             eng = engine[h['Stage']]
-#         else:
-#             abort(400, message='Unknown database')
-#         ans = []
-#         with eng.connect() as con:
-#             for q in qs:
-#                 not_allowed = q.lower().startswith(('select', 'update', 'insert', 'delete'))
-#                 if not_allowed:
-#                     ans.append({'query': q, 'success': False, 'error': 'SELECT, UPDATE, INSERT and DELETE queries are not allowed'})
-#                     continue
-#                 try:
-#                     rs = con.execute(text(q))
-#                     ans.append({'query': q, 'success': True, 'error': None})
-#                 except Exception as error:
-#                     logger.error('Ошибка при выполнении запроса')
-#                     ans.append({'query': q, 'success': False, 'error': str(error)})
-#         return jsonify(ans)
+class SQL_execute(Resource):
+    @check_developers_token
+    def post(self, product, db):
+        psr = parsers['actions']['COMMON']['sql']
+        args = psr.parse_args(strict=True)
+        qs = args['query']
+        qs = [qs] if type(qs) == str else qs
+        try:
+            eng = engines[product][db]
+        except:
+            abort(400, message='Unknown project and or its database')
+        ans = []
+        with eng.connect() as con:
+            for q in qs:
+                not_allowed = q.lower().startswith(('select', 'update', 'insert', 'delete'))
+                if not_allowed:
+                    ans.append({'query': q, 'success': False, 'error': 'SELECT, UPDATE, INSERT and DELETE queries are not allowed'})
+                    continue
+                try:
+                    rs = con.execute(text(q))
+                    ans.append({'query': q, 'success': True, 'error': None})
+                except Exception as error:
+                    logger.error('Ошибка при выполнении запроса')
+                    ans.append({'query': q, 'success': False, 'error': str(error)})
+        return jsonify(ans)
 
 
 app = Flask(__name__)
@@ -572,7 +563,7 @@ api.add_resource(TableExpanded, '/api/v1/<product>/<db>/expanded/<table_name>')
 api.add_resource(CalculatorSpecialTables, '/api/v1/clc/<db>/special/<resource_name>')
 api.add_resource(CalculatorActions, '/api/v1/clc/<db>/actions/<resource_name>')
 api.add_resource(Auth, '/api/v1/auth')
-# api.add_resource(SQL_execute, '/execute_sql/<database>')
+api.add_resource(SQL_execute, '/api/v1/<product>/<db>/execute_sql')
 # # Если таблицы нет, то выдает ошибку 500, нужно 404
 
 

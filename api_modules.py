@@ -56,6 +56,12 @@ def build_actions_argparsers(creds):
     actions_parsers['COMMON']['sql'] = ps
     # logger.debug(actions_parsers)
 
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'query', required=True, nullable=False, store_missing=False, type=str, action='append')
+    actions_parsers['COMMON']['sql'] = ps
+    # logger.debug(actions_parsers)
+
     return actions_parsers
 
 
@@ -82,10 +88,12 @@ def create_db_resources_v3(creds):
     inspectors = copy.deepcopy(creds)
     for product, dbs in creds.items():
         # ___________________
-        # if product not in ['clc', 'auth']:
-        #     continue
+        if product not in ['uu', 'auth']:
+            continue
         # ___________________
         for db, data in dbs.items():
+            if product == 'uu' and db != 'spv':
+                continue
             # logger.debug(f'{product} - {db} - {data}')
             conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**data)
             eng = create_engine(conn_str, echo=False)
@@ -120,10 +128,12 @@ def build_init_tables_argparsers(engines, tables, creds):
     tables_fields_argparsers = copy.deepcopy(creds)
     for product, dbs in engines.items():
         # ___________________
-        # if product not in ['clc', 'auth']:
-        #     continue
+        if product not in ['uu', 'auth']:
+            continue
         # ___________________
         for db, eng in dbs.items():
+            if product == 'uu' and db != 'spv':
+                continue
             tables_fields_argparsers[product][db] = {}
             # Дефолтные парсеры для ообращения непосредственно к таблицам
             inspector = inspect(eng)

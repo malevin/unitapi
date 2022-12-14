@@ -240,7 +240,7 @@ class Table(Resource):
 def get_expanded_table_args_post(function=None):
     @wraps(function)
     def wrapper(*args, **kwargs):
-        product, db, table_name = kwargs['product'], kwargs['db'], kwargs['table_name']
+        product, db = kwargs['product'], kwargs['db']
         eng = engines[product][db]
         session = Session(eng)
         tables = db_tables[product][db]
@@ -344,8 +344,21 @@ def update_eks_clc_id(session, tables, args):
 
 def update_mats_spc_id(session, tables, args):
     r_ek_basic_materials = tables['r_ek_basic_materials']
+    r_ek_add_materials = tables['r_ek_add_materials']
+    logger.debug(args)
+    if args['r_ek_add_mats_ids'] is None and args['r_ek_basic_mats_ids'] is None:
+        abort(400, message='At least one basic or additional material must be passed in request')
     try:
-        session.query(r_ek_basic_materials).filter(r_ek_basic_materials.c['id'].in_(args['r_ek_basic_mats_ids'])).update({'spc_id': args['spc_id']})
+        if args['r_ek_basic_mats_ids'] is not None:
+            logger.debug('updating basic')
+            # args['r_ek_basic_mats_ids'] = [args['r_ek_basic_mats_ids']] if type(args['r_ek_basic_mats_ids']) == int else args['r_ek_basic_mats_ids']
+            # logger.debug(args['r_ek_basic_mats_ids'])
+            session.query(r_ek_basic_materials).filter(r_ek_basic_materials.c['id'].in_(args['r_ek_basic_mats_ids'])).update({'spc_id': args['spc_id']})
+        if args['r_ek_add_mats_ids'] is not None:
+            logger.debug('updating additional')
+            # args['r_ek_add_mats_ids'] = [args['r_ek_add_mats_ids']] if type(args['r_ek_add_mats_ids']) == int else args['r_ek_add_mats_ids']
+            # logger.debug(args['r_ek_add_mats_ids'])
+            session.query(r_ek_add_materials).filter(r_ek_add_materials.c['id'].in_(args['r_ek_add_mats_ids'])).update({'spc_id': args['spc_id']})
         session.commit()
         return '', 204
     except Exception as error:

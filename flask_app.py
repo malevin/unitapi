@@ -369,6 +369,59 @@ def update_mats_spc_id(session, tables, args):
         return response
 
 
+def delete_ek_with_mats(session, tables, ek_ids):
+    logger.debug(ek_ids)
+    ek = tables['ek']
+    r_ek_basic_mats = tables['r_ek_basic_materials']
+    r_ek_add_mats = tables['r_ek_add_materials']
+    try:
+        session.query(r_ek_add_mats).filter(r_ek_add_mats.c['ek_id'].in_(ek_ids)).delete()
+        session.query(r_ek_basic_mats).filter(r_ek_basic_mats.c['ek_id'].in_(ek_ids)).delete()
+        session.query(ek).filter(ek.c['id'].in_(ek_ids)).delete()
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
+def delete_clc_with_eks(session, tables, clc_ids):
+    clc = tables['clc']
+    ek = tables['ek']
+    try:
+        session.query(ek).filter(ek.c['clc_id'].in_(clc_ids)).update({'clc_id': None})
+        session.query(clc).filter(clc.c['id'].in_(clc_ids)).delete()
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
+def delete_spc_with_mats(session, tables, spc_ids):
+    spc = tables['spc']
+    r_ek_basic_mats = tables['r_ek_basic_materials']
+    r_ek_add_mats = tables['r_ek_add_materials']
+    try:
+        session.query(r_ek_basic_mats).filter(r_ek_basic_mats.c['spc_id'].in_(spc_ids)).update({'spc_id': None})
+        session.query(r_ek_add_mats).filter(r_ek_add_mats.c['spc_id'].in_(spc_ids)).update({'spc_id': None})
+        session.query(spc).filter(spc.c['id'].in_(spc_ids)).delete()
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
 def get_actions_special_default_args(function=None):
     @wraps(function)
     def wrapper(*args, **kwargs):
@@ -399,7 +452,6 @@ def get_actions_special_default_args(function=None):
     return wrapper
 
 
-
 class CalculatorActions(Resource):
     @check_token
     @get_actions_special_default_args
@@ -408,6 +460,12 @@ class CalculatorActions(Resource):
             update_eks_clc_id(session, tables, args)
         elif resource_name == 'give_spc_id_to_material':
             update_mats_spc_id(session, tables, args)
+        elif resource_name == 'delete_ek_with_mats':
+            delete_ek_with_mats(session, tables, args['ek_ids'])
+        elif resource_name == 'delete_clc_with_eks':
+            delete_clc_with_eks(session, tables, args['clc_ids'])
+        elif resource_name == 'delete_spc_with_mats':
+            delete_spc_with_mats(session, tables, args['spc_ids'])
 
 
 # def make_ek_details(session, stage, ek_id):

@@ -51,18 +51,28 @@ def build_actions_argparsers(creds):
         'password', required=True, nullable=False, store_missing=False, type=str)
     actions_parsers['auth']['COMMON']['check_pwd'] = ps
 
+    # Специальные удаления ЕК, спецификаций и калькуляций написаны так, чтобы можно было передать несколько айди сущностей для удаления списком
     ps = reqparse.RequestParser()
     ps.add_argument(
-        'query', required=True, nullable=False, store_missing=False, type=str, action='append')
-    actions_parsers['COMMON']['sql'] = ps
-    # logger.debug(actions_parsers)
+        'ek_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    actions_parsers['clc']['COMMON']['delete_ek_with_mats'] = ps
+
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'clc_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    actions_parsers['clc']['COMMON']['delete_clc_with_eks'] = ps
+
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'spc_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    actions_parsers['clc']['COMMON']['delete_spc_with_mats'] = ps
 
     ps = reqparse.RequestParser()
     ps.add_argument(
         'query', required=True, nullable=False, store_missing=False, type=str, action='append')
     actions_parsers['COMMON']['sql'] = ps
-    # logger.debug(actions_parsers)
 
+    delete_clc_with_eks
     return actions_parsers
 
 
@@ -89,12 +99,12 @@ def create_db_resources_v3(creds):
     inspectors = copy.deepcopy(creds)
     for product, dbs in creds.items():
         # ___________________
-        # if product not in ['clc', 'auth']:
-        #     continue
+        if product not in ['clc', 'auth']:
+            continue
         # ___________________
         for db, data in dbs.items():
-            # if product == 'clc' and db != 'production':
-            #     continue
+            if product == 'clc' and db != 'production':
+                continue
             # logger.debug(f'{product} - {db} - {data}')
             conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**data)
             eng = create_engine(conn_str, echo=False)
@@ -129,12 +139,12 @@ def build_init_tables_argparsers(engines, tables, creds):
     tables_fields_argparsers = copy.deepcopy(creds)
     for product, dbs in engines.items():
         # ___________________
-        # if product not in ['clc', 'auth']:
-        #     continue
+        if product not in ['clc', 'auth']:
+            continue
         # ___________________
         for db, eng in dbs.items():
-            # if product == 'clc' and db != 'production':
-            #     continue
+            if product == 'clc' and db != 'production':
+                continue
             tables_fields_argparsers[product][db] = {}
             # Дефолтные парсеры для ообращения непосредственно к таблицам
             inspector = inspect(eng)

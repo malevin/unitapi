@@ -98,12 +98,12 @@ def create_db_resources_v3(creds):
     inspectors = copy.deepcopy(creds)
     for product, dbs in creds.items():
         # ___________________
-        # if product not in ['clc', 'auth']:
-        #     continue
+        if product not in ['clc', 'auth']:
+            continue
         # ___________________
         for db, data in dbs.items():
-            # if product == 'clc' and db != 'production':
-            #     continue
+            if product == 'clc' and db != 'production':
+                continue
             # logger.debug(f'{product} - {db} - {data}')
             conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**data)
             eng = create_engine(conn_str, echo=False)
@@ -138,16 +138,18 @@ def build_init_tables_argparsers(engines, tables, creds):
     tables_fields_argparsers = copy.deepcopy(creds)
     for product, dbs in engines.items():
         # ___________________
-        # if product not in ['clc', 'auth']:
-        #     continue
+        if product not in ['clc', 'auth']:
+            continue
         # ___________________
         for db, eng in dbs.items():
-            # if product == 'clc' and db != 'production':
-            #     continue
+            if product == 'clc' and db != 'production':
+                continue
             tables_fields_argparsers[product][db] = {}
             # Дефолтные парсеры для ообращения непосредственно к таблицам
             inspector = inspect(eng)
             for table_name in inspector.get_table_names(schema=eng.url.database):
+                if table_name != 'clc':
+                    continue
                 table_parsers = {k: reqparse.RequestParser() for k in [
                     'PUT', # Для добавления обязательны поля, которые не могут быть пустыми и не имеют автозаполнения либо значения по умолчанию
                     'DELETE', # Для удаления обязательны те поля, которые образуют уникальный ключ.
@@ -163,13 +165,16 @@ def build_init_tables_argparsers(engines, tables, creds):
                     table_parsers['PUT'].add_argument(column.name, required=True, nullable=False, store_missing=False)
                 for column in inspector.get_columns(table_name, schema=eng.url.database):
                     # Добавить проверку по типу данных ОБЯЗАТЕЛЬНО!
+                    # req_f = not column["nullable"] and \
+                    #     ((not column["autoincrement"]) if "autoincrement" in column else True) and \
+                    #         column['default'] is None
                     table_parsers['POST'].add_argument(
                         column['name'],
                         # type= # Доделать сопоставлением типов данных возвращаемых схемой SQL с питоновыми типами
                         required=not column["nullable"] and \
                             ((not column["autoincrement"]) if "autoincrement" in column else True) and \
                                 column['default'] is None,
-                        nullable=False,
+                        nullable=True,
                         store_missing=False
                         # default=column['default'] # бесполезная штука, потому что все равно тип данных не тот, конвертировать не за чем если БД сразу нужное значение вставит
                     )
@@ -184,6 +189,7 @@ def build_init_tables_argparsers(engines, tables, creds):
                             )
                 # if table_name == 'contractor':
                     # logger.debug(table_parsers['POST'].args)
+                logger.debug(table_parsers)
                 tables_fields_argparsers[product][db][table_name] = table_parsers
                 # logger.debug(tables_fields_argparsers[product][db][table_name])
     return tables_fields_argparsers

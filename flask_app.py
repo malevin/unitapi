@@ -466,6 +466,244 @@ class CalculatorActions(Resource):
             delete_clc_with_eks(session, tables, args['clc_ids'])
         elif resource_name == 'delete_spc_with_mats':
             delete_spc_with_mats(session, tables, args['spc_ids'])
+        elif resource_name == 'format_estimation_json_for_print':
+            logger.debug('necessary branch')
+            json_data = format_estimation_json_for_print(args['est_id'])
+            return jsonify(json_data)
+
+
+def format_estimation_json_for_print(est_id):
+    json_data = {
+        "estimation_id" : 1,
+        "works_sum": 12531531,
+        "materials_sum": 325236236,
+        "item_clc_code" : "4.4",
+        "item_name" : "Какая-то статья",
+        "object_full_name" : "Оооооочень длинный текст",
+        "contract_name" : "№ 1 от 22.12.2022 Выполнение работ",
+        "estimation_name" : "Расчет 1",
+        "start_date" : "21.11.2022",
+        "end_date" : "22.12.2022",
+        "contract_prepayment" : 100000,
+        "work_types_description" : "Тут должно быть описание работы",
+        "eps" : [
+            {
+                "id" : 1,
+                "order_num" : "1",
+                "name" : "Захватка 1",
+                "eks" : [
+                    {
+                        "id" : 1,
+                        "order_num" : "1.1",
+                        "name" : "Какая-то работа 1",
+                        "ed_izm" : "м2",
+                        "volume" : 100,
+                        "price" : 1000,
+                        "cost": 100000,
+                        'works_sum': 135135,
+                        "materials_sum": 235235,
+                        "base_mats" : [
+                            {
+                                "id" : 1,
+                                "name" : "Бетон бетоновый 1",
+                                "consumption" : 1.2,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 120,
+                                "price" : 100,
+                                "cost": 12000
+                            },{
+                                "id" : 1,
+                                "name" : "Бетон бетоновый 2",
+                                "consumption" : 1.4,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 140,
+                                "price" : 100,
+                                "cost": 14000
+                            }
+                        ],
+                        "add_mats" : [
+                            {
+                                "id" : 1,
+                                "name" : "Арматура крепкая 1",
+                                "ed_izm" : "м.п.",
+                                "volume" : 100,
+                                "price" : 100,
+                                "cost": 10000
+                            },
+                            {
+                                "id" : 2,
+                                "name" : "Арматура крепкая 2",
+                                "ed_izm" : "м.п.",
+                                "volume" : 200,
+                                "price" : 200,
+                                "cost": 40000
+                            }
+                        ]
+                    },
+                    {
+                        "id" : 2,
+                        "order_num" : "1.2",
+                        "name" : "Какая-то работа 2",
+                        "ed_izm" : "м3",
+                        "volume" : 400,
+                        "price" : 2000,
+                        "cost": 800000,
+                        'works_sum': 57457,
+                        "materials_sum": 2362367,
+                        "base_mats" : [
+                            {
+                                "id" : 5,
+                                "name" : "Бетон бетоновый 3",
+                                "consumption" : 1.2,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 120,
+                                "price" : 100,
+                                "cost": 12000
+                            },{
+                                "id" : 9,
+                                "name" : "Бетон бетоновый 4",
+                                "consumption" : 1.4,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 140,
+                                "price" : 200,
+                                "cost": 28000
+                            }
+                        ],
+                        "add_mats" : [
+                            {
+                                "id" : 1,
+                                "name" : "Арматура крепкая 3",
+                                "ed_izm" : "м.п.",
+                                "volume" : 100,
+                                "price" : 100,
+                                "cost": 10000
+                            },
+                            {
+                                "id" : 2,
+                                "name" : "Арматура крепкая 4",
+                                "ed_izm" : "м.п.",
+                                "volume" : 300,
+                                "price" : 200,
+                                "cost": 60000
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id" : 4,
+                "order_num" : "2",
+                "name" : "Этаж 1 секция 5",
+                "eks" : [
+                    {
+                        "id" : 1,
+                        "order_num" : "2.1",
+                        "name" : "Какая-то работа 3",
+                        "ed_izm" : "м2",
+                        "volume" : 100,
+                        "price" : 1000,
+                        "cost": 100000,
+                        'works_sum': 135135,
+                        "materials_sum": 235235,
+                        "base_mats" : [
+                            {
+                                "id" : 1,
+                                "name" : "Бетон бетоновый 1",
+                                "consumption" : 1.2,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 120,
+                                "price" : 100,
+                                "cost": 12000
+                            },{
+                                "id" : 1,
+                                "name" : "Бетон бетоновый 2",
+                                "consumption" : 1.4,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 140,
+                                "price" : 100,
+                                "cost": 14000
+                            }
+                        ],
+                        "add_mats" : [
+                            {
+                                "id" : 1,
+                                "name" : "Арматура крепкая 1",
+                                "ed_izm" : "м.п.",
+                                "volume" : 100,
+                                "price" : 100,
+                                "cost": 10000
+                            },
+                            {
+                                "id" : 2,
+                                "name" : "Арматура крепкая 2",
+                                "ed_izm" : "м.п.",
+                                "volume" : 200,
+                                "price" : 200,
+                                "cost": 40000
+                            }
+                        ]
+                    },
+                    {
+                        "id" : 2,
+                        "order_num" : "1.2",
+                        "name" : "Какая-то работа 4",
+                        "ed_izm" : "м3",
+                        "volume" : 400,
+                        "price" : 2000,
+                        "cost": 800000,
+                        'works_sum': 57457,
+                        "materials_sum": 2362367,
+                        "base_mats" : [
+                            {
+                                "id" : 5,
+                                "name" : "Бетон бетоновый 3",
+                                "consumption" : 1.2,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 120,
+                                "price" : 100,
+                                "cost": 12000
+                            },{
+                                "id" : 9,
+                                "name" : "Бетон бетоновый 4",
+                                "consumption" : 1.4,
+                                "overconsumption" : 1,
+                                "ed_izm" : "м3",
+                                "volume" : 140,
+                                "price" : 200,
+                                "cost": 28000
+                            }
+                        ],
+                        "add_mats" : [
+                            {
+                                "id" : 1,
+                                "name" : "Арматура крепкая 3",
+                                "ed_izm" : "м.п.",
+                                "volume" : 100,
+                                "price" : 100,
+                                "cost": 10000
+                            },
+                            {
+                                "id" : 2,
+                                "name" : "Арматура крепкая 4",
+                                "ed_izm" : "м.п.",
+                                "volume" : 300,
+                                "price" : 200,
+                                "cost": 60000
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    return json_data
 
 
 # def make_ek_details(session, stage, ek_id):

@@ -69,6 +69,11 @@ def build_actions_argparsers(creds):
 
     ps = reqparse.RequestParser()
     ps.add_argument(
+        'est_id', required=True, nullable=False, store_missing=False, type=int, action='store')
+    actions_parsers['clc']['production']['format_estimation_json_for_print'] = ps
+
+    ps = reqparse.RequestParser()
+    ps.add_argument(
         'query', required=True, nullable=False, store_missing=False, type=str, action='append')
     actions_parsers['COMMON']['sql'] = ps
 
@@ -189,7 +194,6 @@ def build_init_tables_argparsers(engines, tables, creds):
                             )
                 # if table_name == 'contractor':
                     # logger.debug(table_parsers['POST'].args)
-                logger.debug(table_parsers)
                 tables_fields_argparsers[product][db][table_name] = table_parsers
                 # logger.debug(tables_fields_argparsers[product][db][table_name])
     return tables_fields_argparsers

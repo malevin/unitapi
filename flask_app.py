@@ -452,6 +452,45 @@ def get_actions_special_default_args(function=None):
     return wrapper
 
 
+def approve_payment_requests(session, tables, args):
+    pr = tables['payment_requests']
+    try:
+        session.query(pr).filter(pr.c['id'].in_(args['pr_ids'])).update({'approved_by_' + args['approve_by']: 1})
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
+def decline_payment_requests(session, tables, args):
+    pr = tables['payment_requests']
+    try:
+        session.query(pr).filter(pr.c['id'].in_(args['pr_ids'])).update({'approved_by_' + args['decline_by']: 0})
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
+class UuActions(Resource):
+    @check_token
+    @get_actions_special_default_args
+    def post(self, eng, session, tables, args, resource_name):
+        if resource_name == 'approve_payment_requests':
+            ans = approve_payment_requests(session, tables, args)
+        if resource_name == 'decline_payment_requests':
+            ans = decline_payment_requests(session, tables, args)
+        return ans
+
+
 class CalculatorActions(Resource):
     @check_token
     @get_actions_special_default_args
@@ -475,17 +514,20 @@ class CalculatorActions(Resource):
 def format_estimation_json_for_print(est_id):
     json_data = {
         "estimation_id" : 1,
-        "works_sum": 12531531,
-        "materials_sum": 325236236,
-        "item_clc_code" : "4.4",
-        "item_name" : "Какая-то статья",
-        "object_full_name" : "Оооооочень длинный текст",
-        "contract_name" : "№ 1 от 22.12.2022 Выполнение работ",
-        "estimation_name" : "Расчет 1",
-        "start_date" : "21.11.2022",
-        "end_date" : "22.12.2022",
-        "contract_prepayment" : 100000,
-        "work_types_description" : "Тут должно быть описание работы",
+        "ss_id": "ervsebrtbwrtbnwrtbnwsgwh45hq4",
+        "props":{
+            "works_sum": 12531531,
+            "materials_sum": 325236236,
+            "item_clc_code" : "4.4",
+            "item_name" : "Какая-то статья",
+            "object_full_name" : "Оооооочень длинный текст",
+            "contract_name" : "№ 1 от 22.12.2022 Выполнение работ",
+            "estimation_name" : "Расчет 1",
+            "start_date" : "21.11.2022",
+            "end_date" : "22.12.2022",
+            "contract_prepayment" : 100000,
+            "work_types_description" : "Тут должно быть описание работы"
+        },
         "eps" : [
             {
                 "id" : 1,
@@ -831,7 +873,7 @@ class Auth(Resource):
         payload_data = {
             "name": user["name"],
             "roles": user_roles, 
-            "exp": datetime.now(timezone.utc) + timedelta(hours=16)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=8760*10)
         }
         token = jwt.encode(payload_data, KEY)
         return token, 200
@@ -871,6 +913,7 @@ api.add_resource(Table, '/api/v1/<product>/<db>/initial/<table_name>')
 api.add_resource(TableExpanded, '/api/v1/<product>/<db>/expanded/<table_name>')
 api.add_resource(CalculatorSpecialTables, '/api/v1/clc/<db>/special/<resource_name>')
 api.add_resource(CalculatorActions, '/api/v1/clc/<db>/actions/<resource_name>')
+api.add_resource(UuActions, '/api/v1/uu/<db>/actions/<resource_name>')
 api.add_resource(Auth, '/api/v1/auth')
 api.add_resource(SQL_execute, '/api/v1/<product>/<db>/execute_sql')
 # # Если таблицы нет, то выдает ошибку 500, нужно 404

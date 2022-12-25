@@ -77,6 +77,22 @@ def build_actions_argparsers(creds):
         'query', required=True, nullable=False, store_missing=False, type=str, action='append')
     actions_parsers['COMMON']['sql'] = ps
 
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'pr_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    ps.add_argument(
+        'approve_by', required=True, nullable=False, store_missing=False,
+        choices=('finmanager', 'director', 'bank'))
+    actions_parsers['uu']['COMMON']['approve_payment_requests'] = ps
+
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'pr_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    ps.add_argument(
+        'decline_by', required=True, nullable=False, store_missing=False,
+        choices=('finmanager'))
+    actions_parsers['uu']['COMMON']['decline_payment_requests'] = ps
+
     return actions_parsers
 
 
@@ -87,7 +103,6 @@ def build_spec_argparsers(creds):
             spec_parsers[product][db] = {}
             # Ключ словаря для хранения парсеров, общих для всех БД в рамках одного продукта, например для всех баз данных УУ
             spec_parsers[product]['COMMON'] = {}
-    
     # Все материалы по расчету
     ps = reqparse.RequestParser()
     ps.add_argument(
@@ -103,12 +118,12 @@ def create_db_resources_v3(creds):
     inspectors = copy.deepcopy(creds)
     for product, dbs in creds.items():
         # ___________________
-        if product not in ['clc', 'auth']:
-            continue
+        # if product not in ['uu', 'auth']:
+        #     continue
         # ___________________
         for db, data in dbs.items():
-            if product == 'clc' and db != 'production':
-                continue
+            # if product == 'uu' and db != 'scandia':
+            #     continue
             # logger.debug(f'{product} - {db} - {data}')
             conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**data)
             eng = create_engine(conn_str, echo=False)
@@ -143,18 +158,16 @@ def build_init_tables_argparsers(engines, tables, creds):
     tables_fields_argparsers = copy.deepcopy(creds)
     for product, dbs in engines.items():
         # ___________________
-        if product not in ['clc', 'auth']:
-            continue
+        # if product not in ['uu', 'auth']:
+        #     continue
         # ___________________
         for db, eng in dbs.items():
-            if product == 'clc' and db != 'production':
-                continue
+            # if product == 'uu' and db != 'scandia':
+            #     continue
             tables_fields_argparsers[product][db] = {}
             # Дефолтные парсеры для ообращения непосредственно к таблицам
             inspector = inspect(eng)
             for table_name in inspector.get_table_names(schema=eng.url.database):
-                if table_name != 'clc':
-                    continue
                 table_parsers = {k: reqparse.RequestParser() for k in [
                     'PUT', # Для добавления обязательны поля, которые не могут быть пустыми и не имеют автозаполнения либо значения по умолчанию
                     'DELETE', # Для удаления обязательны те поля, которые образуют уникальный ключ.

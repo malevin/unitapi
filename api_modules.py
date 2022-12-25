@@ -97,8 +97,17 @@ def build_actions_argparsers(creds):
     ps.add_argument(
         'pr_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
     ps.add_argument(
-        'pack_id', required=True, nullable=False, store_missing=False, type=int)
+        'pack_id', required=False, nullable=True, store_missing=True, type=int)
     actions_parsers['uu']['COMMON']['set_payment_requests_into_pack'] = ps
+
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'pr_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    ps.add_argument(
+        'number', required=True, nullable=False, store_missing=False, type=int)
+    ps.add_argument(
+        'date', required=True, nullable=False, store_missing=False)
+    actions_parsers['uu']['COMMON']['create_pack_with_payment_requests'] = ps
 
     return actions_parsers
 

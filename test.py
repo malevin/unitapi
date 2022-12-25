@@ -26,15 +26,16 @@ params = {
 }
 
 df = print_post(
-    base + '/uu/scandia/actions/set_payment_requests_into_pack',
+    base + '/uu/scandia/actions/create_pack_with_payment_requests',
     headers=headers,
     json={
         'pr_ids': [48, 49],
-        'pack_id': 19
+        'number': 28,
+        'date': '2022-01-05'
     }
 )
 
-# logger.debug(df.status_code)
+logger.debug(df.json())
 
 
 

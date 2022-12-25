@@ -493,6 +493,27 @@ def set_payment_requests_into_pack(session, tables, args):
         ), 403)
         return response
 
+
+def create_pack_with_payment_requests(session, tables, args):
+    pr = tables['payment_requests']
+    packs = tables['payment_requests_packs']
+    try:
+        # ans = session.query(packs).insert({'date': args['date'], 'number': args['number']})
+        ans = session.execute(packs.insert({'date': args['date'], 'number': args['number']}), )
+        last_id = session.query(packs).order_by(packs.c['id'].desc()).first()[0]
+        logger.debug(type(last_id))
+        logger.debug(last_id)
+        session.query(pr).filter(pr.c['id'].in_(args['pr_ids'])).update({'payment_requests_packs_id': last_id})
+        session.commit()
+        return make_response(jsonify({'created_pack_id': last_id}), 200)
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
 class UuActions(Resource):
     @check_token
     @get_actions_special_default_args
@@ -503,6 +524,8 @@ class UuActions(Resource):
             ans = decline_payment_requests(session, tables, args)
         elif resource_name == 'set_payment_requests_into_pack':
             ans = set_payment_requests_into_pack(session, tables, args)
+        elif resource_name == 'create_pack_with_payment_requests':
+            ans = create_pack_with_payment_requests(session, tables, args)
         return ans
 
 

@@ -93,6 +93,13 @@ def build_actions_argparsers(creds):
         choices=('finmanager'))
     actions_parsers['uu']['COMMON']['decline_payment_requests'] = ps
 
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'pr_ids', required=True, nullable=False, store_missing=False, type=int, action='append')
+    ps.add_argument(
+        'pack_id', required=True, nullable=False, store_missing=False, type=int)
+    actions_parsers['uu']['COMMON']['set_payment_requests_into_pack'] = ps
+
     return actions_parsers
 
 

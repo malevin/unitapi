@@ -480,14 +480,29 @@ def decline_payment_requests(session, tables, args):
         return response
 
 
+def set_payment_requests_into_pack(session, tables, args):
+    pr = tables['payment_requests']
+    try:
+        session.query(pr).filter(pr.c['id'].in_(args['pr_ids'])).update({'payment_requests_packs_id': args['pack_id']})
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
 class UuActions(Resource):
     @check_token
     @get_actions_special_default_args
     def post(self, eng, session, tables, args, resource_name):
         if resource_name == 'approve_payment_requests':
             ans = approve_payment_requests(session, tables, args)
-        if resource_name == 'decline_payment_requests':
+        elif resource_name == 'decline_payment_requests':
             ans = decline_payment_requests(session, tables, args)
+        elif resource_name == 'set_payment_requests_into_pack':
+            ans = set_payment_requests_into_pack(session, tables, args)
         return ans
 
 

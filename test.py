@@ -26,11 +26,11 @@ params = {
 }
 
 df = print_post(
-    base + '/uu/scandia/actions/decline_payment_requests',
+    base + '/uu/scandia/actions/set_payment_requests_into_pack',
     headers=headers,
     json={
-        'pr_ids': [49],
-        'decline_by': 'finmanager'
+        'pr_ids': [48, 49],
+        'pack_id': 19
     }
 )
 

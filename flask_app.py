@@ -514,6 +514,22 @@ def create_pack_with_payment_requests(session, tables, args):
         return response
 
 
+def delete_pack(session, tables, args):
+    pr = tables['payment_requests']
+    packs = tables['payment_requests_packs']
+    try:
+        session.query(pr).filter(pr.c['payment_requests_packs_id'] == args['pack_id']).update({'payment_requests_packs_id': None})
+        session.query(packs).filter(packs.c['id'] == args['pack_id']).delete()
+        session.commit()
+        return '', 204
+    except Exception as error:
+        session.rollback()
+        response = make_response(jsonify(
+            {'error': str(error)}
+        ), 403)
+        return response
+
+
 class UuActions(Resource):
     @check_token
     @get_actions_special_default_args
@@ -526,6 +542,8 @@ class UuActions(Resource):
             ans = set_payment_requests_into_pack(session, tables, args)
         elif resource_name == 'create_pack_with_payment_requests':
             ans = create_pack_with_payment_requests(session, tables, args)
+        elif resource_name == 'delete_pack':
+            ans = delete_pack(session, tables, args)
         return ans
 
 

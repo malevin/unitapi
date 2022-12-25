@@ -109,6 +109,11 @@ def build_actions_argparsers(creds):
         'date', required=True, nullable=False, store_missing=False)
     actions_parsers['uu']['COMMON']['create_pack_with_payment_requests'] = ps
 
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'pack_id', required=True, nullable=False, store_missing=False, type=int)
+    actions_parsers['uu']['COMMON']['delete_pack'] = ps
+    
     return actions_parsers
 
 

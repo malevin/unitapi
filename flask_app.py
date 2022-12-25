@@ -514,7 +514,7 @@ def create_pack_with_payment_requests(session, tables, args):
         return response
 
 
-def delete_pack(session, tables, args):
+def delete_pack_with_payment_requests(session, tables, args):
     pr = tables['payment_requests']
     packs = tables['payment_requests_packs']
     try:
@@ -542,8 +542,8 @@ class UuActions(Resource):
             ans = set_payment_requests_into_pack(session, tables, args)
         elif resource_name == 'create_pack_with_payment_requests':
             ans = create_pack_with_payment_requests(session, tables, args)
-        elif resource_name == 'delete_pack':
-            ans = delete_pack(session, tables, args)
+        elif resource_name == 'delete_pack_with_payment_requests':
+            ans = delete_pack_with_payment_requests(session, tables, args)
         return ans
 
 

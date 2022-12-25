@@ -112,7 +112,7 @@ def build_actions_argparsers(creds):
     ps = reqparse.RequestParser()
     ps.add_argument(
         'pack_id', required=True, nullable=False, store_missing=False, type=int)
-    actions_parsers['uu']['COMMON']['delete_pack'] = ps
+    actions_parsers['uu']['COMMON']['delete_pack_with_payment_requests'] = ps
     
     return actions_parsers
 

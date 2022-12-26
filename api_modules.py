@@ -157,19 +157,6 @@ def create_db_resources_v3(creds):
     return engines, tables, inspectors
 
 
-class CustomJSONEncoder(JSONEncoder):
-    def default(self, obj):
-        try:
-            if isinstance(obj, date):
-                return obj.isoformat()
-            iterable = iter(obj)
-        except TypeError:
-            pass
-        else:
-            return list(iterable)
-        return JSONEncoder.default(self, obj)
-
-
 # tables_fields_argparsers – это словарь (объект), содержащий парсеры аргументов запроса,
 # которые соответствуют полям таблиц в существующей БД
 # Инициализируется перед запуском API затем, чтобы при добавлении или удалении полей в БД,

@@ -17,7 +17,8 @@ from flask.json import JSONEncoder
 from bcrypt import checkpw
 from datetime import datetime, timedelta, timezone
 import copy
-from api_modules import build_init_tables_argparsers, create_db_resources_v3, CustomJSONEncoder, build_spec_argparsers, build_actions_argparsers
+from flask_json import FlaskJSON
+from api_modules import build_init_tables_argparsers, create_db_resources_v3, build_spec_argparsers, build_actions_argparsers
 # from sqlalchemy.orm imposrt declarative_base
 
 
@@ -963,7 +964,8 @@ class SQL_execute(Resource):
 
 
 app = Flask(__name__)
-app.json_provider_class = CustomJSONEncoder
+json = FlaskJSON(app)
+# app.config['JSON_DATETIME_FORMAT'] = '%Y/%m/%d %H:%M:%S'
 api = Api(app)
 api.add_resource(Table, '/api/v1/<product>/<db>/initial/<table_name>')
 api.add_resource(TableExpanded, '/api/v1/<product>/<db>/expanded/<table_name>')

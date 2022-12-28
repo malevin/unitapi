@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, load_only
 from sqlalchemy.sql import text
 from sqlalchemy.ext.declarative import DeclarativeMeta
 import json
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, or_, and_
 from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
 from datetime import date, datetime
@@ -18,6 +18,7 @@ from bcrypt import checkpw
 from datetime import datetime, timedelta, timezone
 import copy
 from flask_json import FlaskJSON
+import pprint
 from api_modules import build_init_tables_argparsers, create_db_resources_v3, build_spec_argparsers, build_actions_argparsers
 # from sqlalchemy.orm imposrt declarative_base
 
@@ -100,19 +101,6 @@ parsers = {}
 parsers['initial'] = build_init_tables_argparsers(engines, db_tables, creds)
 parsers['actions'] = build_actions_argparsers(creds)
 parsers['special'] = build_spec_argparsers(creds)
-
-# def check_header(function=None):
-#     @wraps(function)
-#     def wrapper(*args, **kwargs):
-#         h = dict(request.headers)
-#         if 'Key' not in h or h['Key'] != KEY:
-#             abort(401, message='Unauthorized')
-#         if 'Stage' not in h or h['Stage'] not in ['development', 'production']:
-#             abort(400, message="Specify stage of the project: development (for tests) or production. Note that if you work with special database for development tables' properties are still from real database. Watch both to have equal schemas for proper testing. Only data may differ.")
-#         kwargs['stage'] = h['Stage']
-#         res = function(*args, **kwargs)
-#         return res
-#     return wrapper
 
 
 def check_developers_token(function=None):
@@ -563,18 +551,85 @@ class CalculatorActions(Resource):
         elif resource_name == 'delete_spc_with_mats':
             delete_spc_with_mats(session, tables, args['spc_ids'])
         elif resource_name == 'format_estimation_json_for_print':
-            logger.debug('necessary branch')
-            json_data = format_estimation_json_for_print(args['est_id'])
-            return jsonify(json_data)
+            response = format_estimation_json_for_print(eng, session, tables, args['est_id'])
+            return response
 
 
-def format_estimation_json_for_print(est_id):
+def get_df_from_db(eng, session, tables, table_name, filters):
+    t = tables[table_name]
+    columns = t.columns.keys()
+    filters = [
+        t.c[col].in_(
+            [v] if not isinstance(v, (list, tuple, set, pd.Series)) else v
+        ) for col, v in filters.items()
+    ]
+    t = session.query(t).filter(*filters)
+    t = pd.read_sql(t.statement, eng)
+    return t
+
+
+def format_estimation_json_for_print(eng, session, tables, est_id):
+    est = tables['estimations']
+    columns = est.columns.keys()
+    est = session.query(est).filter(est.c['id']==est_id).one()
+    est = {c: v for c, v in zip(columns, est)}
+
+    ek = get_df_from_db(eng, session, tables, 'ek', {'estimation_id': est_id})
+    ep = get_df_from_db(eng, session, tables, 'ep', {'id': ek.ep_id})
+    clc_works_prices = get_df_from_db(eng, session, tables, 'clc_works_prices', {'clc_id': ek.clc_id})
+    work_types = get_df_from_db(eng, session, tables, 'work_types', {'id': ek.work_types_id})
+
+    ek = ek.merge(clc_works_prices, how='left', on=['clc_id', 'work_types_id'])
+    
+    ek = ek.merge(work_types, how='left', left_on='work_types_id', right_on='id',suffixes=(None, '_work_types'))
+
+    ek['works_price'] = ek['price'].fillna(ek['unit_price'])
+    logger.debug(ek[['id', 'price', 'unit_price']])
+    ek['works_cost'] = ek.works_price * ek.volume
+
+    materials = make_est_materials_table(eng, session, tables, est_id)
+
+    base_mats = materials[[
+        'id', 'ek_id', 'materials_id', 'name', 'ed_izm',
+        'consumption_rate', 'overconsumption', 'price', 'cost', 'volume'
+    ]].loc[materials.is_basic]
+    add_mats = materials[[
+        'id', 'ek_id', 'materials_id', 'name', 'ed_izm', 'price', 'cost', 'volume'
+    ]].loc[np.logical_not(materials.is_basic)]
+
+    ek = ek[['id', 'work_types_id', 'volume', 'name', 'ed_izm', 'works_cost', 'ep_id', 'works_price']]
+    mats_summary = materials[['ek_id', 'cost']].rename(columns={'cost': 'materials_cost'}).groupby('ek_id', as_index=False).sum()
+    ek = ek.merge(mats_summary, how='left', left_on='id', right_on='ek_id')
+    ek.drop(columns=['ek_id'], inplace=True)
+    ek['cost'] = ek['materials_cost'] + ek['works_cost']
+    logger.debug(ek)
+
+    eks_summary = ek[['ep_id', 'volume', 'cost']].groupby('ep_id', as_index=False).sum()
+    ep = ep.merge(eks_summary, how='left', left_on='id', right_on='ep_id')
+    ep['price'] = ep.cost / ep.volume
+
+    ep_list = ep[['id', 'name', 'price', 'volume', 'cost']].to_dict('records')
+
+    for i, ep_row in enumerate(ep_list):
+        ep_eks = ek.loc[ek.ep_id == ep_row['id']]
+        ek_list = ep_eks.drop(columns=['ep_id']).to_dict('records')
+        for j, ek_row in enumerate(ek_list):
+            ek_base_mat = base_mats.loc[base_mats.ek_id == ek_row['id']]
+            ek_base_mat_list = ek_base_mat.drop(columns=['ek_id']).to_dict('records')
+            ek_add_mat = add_mats.loc[add_mats.ek_id == ek_row['id']]
+            ek_add_mat_list = ek_add_mat.drop(columns=['ek_id']).to_dict('records')
+            ek_list[j]['base_mats'] = ek_base_mat_list
+            ek_list[j]['add_mats'] = ek_add_mat_list
+            ek_list[j]['order_num'] = str(i+1) + '.' + str(j+1)
+        ep_list[i]['eks'] = ek_list
+        ep_list[i]['order_num'] = str(i+1)
+    
     json_data = {
-        "estimation_id" : 1,
-        "ss_id": "ervsebrtbwrtbnwrtbnwsgwh45hq4",
-        "props":{
-            "works_sum": 12531531,
-            "materials_sum": 325236236,
+        "estimation_id" : est_id,
+        "ss_id": est['ss_id'],
+        "props": {
+            "works_sum": 10000,
+            "materials_sum": 10000,
             "item_clc_code" : "4.4",
             "item_name" : "Какая-то статья",
             "object_full_name" : "Оооооочень длинный текст",
@@ -585,232 +640,12 @@ def format_estimation_json_for_print(est_id):
             "contract_prepayment" : 100000,
             "work_types_description" : "Тут должно быть описание работы"
         },
-        "eps" : [
-            {
-                "id" : 1,
-                "order_num" : "1",
-                "name" : "Захватка 1",
-                "eks" : [
-                    {
-                        "id" : 1,
-                        "order_num" : "1.1",
-                        "name" : "Какая-то работа 1",
-                        "ed_izm" : "м2",
-                        "volume" : 100,
-                        "price" : 1000,
-                        "cost": 100000,
-                        'works_sum': 135135,
-                        "materials_sum": 235235,
-                        "base_mats" : [
-                            {
-                                "id" : 1,
-                                "name" : "Бетон бетоновый 1",
-                                "consumption" : 1.2,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 120,
-                                "price" : 100,
-                                "cost": 12000
-                            },{
-                                "id" : 1,
-                                "name" : "Бетон бетоновый 2",
-                                "consumption" : 1.4,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 140,
-                                "price" : 100,
-                                "cost": 14000
-                            }
-                        ],
-                        "add_mats" : [
-                            {
-                                "id" : 1,
-                                "name" : "Арматура крепкая 1",
-                                "ed_izm" : "м.п.",
-                                "volume" : 100,
-                                "price" : 100,
-                                "cost": 10000
-                            },
-                            {
-                                "id" : 2,
-                                "name" : "Арматура крепкая 2",
-                                "ed_izm" : "м.п.",
-                                "volume" : 200,
-                                "price" : 200,
-                                "cost": 40000
-                            }
-                        ]
-                    },
-                    {
-                        "id" : 2,
-                        "order_num" : "1.2",
-                        "name" : "Какая-то работа 2",
-                        "ed_izm" : "м3",
-                        "volume" : 400,
-                        "price" : 2000,
-                        "cost": 800000,
-                        'works_sum': 57457,
-                        "materials_sum": 2362367,
-                        "base_mats" : [
-                            {
-                                "id" : 5,
-                                "name" : "Бетон бетоновый 3",
-                                "consumption" : 1.2,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 120,
-                                "price" : 100,
-                                "cost": 12000
-                            },{
-                                "id" : 9,
-                                "name" : "Бетон бетоновый 4",
-                                "consumption" : 1.4,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 140,
-                                "price" : 200,
-                                "cost": 28000
-                            }
-                        ],
-                        "add_mats" : [
-                            {
-                                "id" : 1,
-                                "name" : "Арматура крепкая 3",
-                                "ed_izm" : "м.п.",
-                                "volume" : 100,
-                                "price" : 100,
-                                "cost": 10000
-                            },
-                            {
-                                "id" : 2,
-                                "name" : "Арматура крепкая 4",
-                                "ed_izm" : "м.п.",
-                                "volume" : 300,
-                                "price" : 200,
-                                "cost": 60000
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "id" : 4,
-                "order_num" : "2",
-                "name" : "Этаж 1 секция 5",
-                "eks" : [
-                    {
-                        "id" : 1,
-                        "order_num" : "2.1",
-                        "name" : "Какая-то работа 3",
-                        "ed_izm" : "м2",
-                        "volume" : 100,
-                        "price" : 1000,
-                        "cost": 100000,
-                        'works_sum': 135135,
-                        "materials_sum": 235235,
-                        "base_mats" : [
-                            {
-                                "id" : 1,
-                                "name" : "Бетон бетоновый 1",
-                                "consumption" : 1.2,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 120,
-                                "price" : 100,
-                                "cost": 12000
-                            },{
-                                "id" : 1,
-                                "name" : "Бетон бетоновый 2",
-                                "consumption" : 1.4,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 140,
-                                "price" : 100,
-                                "cost": 14000
-                            }
-                        ],
-                        "add_mats" : [
-                            {
-                                "id" : 1,
-                                "name" : "Арматура крепкая 1",
-                                "ed_izm" : "м.п.",
-                                "volume" : 100,
-                                "price" : 100,
-                                "cost": 10000
-                            },
-                            {
-                                "id" : 2,
-                                "name" : "Арматура крепкая 2",
-                                "ed_izm" : "м.п.",
-                                "volume" : 200,
-                                "price" : 200,
-                                "cost": 40000
-                            }
-                        ]
-                    },
-                    {
-                        "id" : 2,
-                        "order_num" : "1.2",
-                        "name" : "Какая-то работа 4",
-                        "ed_izm" : "м3",
-                        "volume" : 400,
-                        "price" : 2000,
-                        "cost": 800000,
-                        'works_sum': 57457,
-                        "materials_sum": 2362367,
-                        "base_mats" : [
-                            {
-                                "id" : 5,
-                                "name" : "Бетон бетоновый 3",
-                                "consumption" : 1.2,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 120,
-                                "price" : 100,
-                                "cost": 12000
-                            },{
-                                "id" : 9,
-                                "name" : "Бетон бетоновый 4",
-                                "consumption" : 1.4,
-                                "overconsumption" : 1,
-                                "ed_izm" : "м3",
-                                "volume" : 140,
-                                "price" : 200,
-                                "cost": 28000
-                            }
-                        ],
-                        "add_mats" : [
-                            {
-                                "id" : 1,
-                                "name" : "Арматура крепкая 3",
-                                "ed_izm" : "м.п.",
-                                "volume" : 100,
-                                "price" : 100,
-                                "cost": 10000
-                            },
-                            {
-                                "id" : 2,
-                                "name" : "Арматура крепкая 4",
-                                "ed_izm" : "м.п.",
-                                "volume" : 300,
-                                "price" : 200,
-                                "cost": 60000
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
+        "eps" : ep_list
     }
-    return json_data
-
-
-# def make_ek_details(session, stage, ek_id):
-#     ek = tables['ek']
-#     columns = ek.columns.keys()
-#     ek = session.query(ek).filter(ek.c['id']==ek_id).one()
-#     ek = {c: v for c, v in zip(columns, ek)}
-#     return ek
+    
+    response = make_response(jsonify(json_data), 200)
+    response.headers["Content-Type"] = "application/json"
+    return response
 
 
 def make_est_materials_table(eng, session, tables, est_id):
@@ -865,21 +700,30 @@ def make_est_materials_table(eng, session, tables, est_id):
     # logger.debug(df.volume)
 
     mats = df.materials_id.unique().tolist()
+    # logger.debug(f'mats: {mats}')
+
     prices_history = tables['materials_prices_history']
     prices_history = session.query(prices_history).filter(
-        prices_history.c['materials_id'].in_(mats),
-        prices_history.c['objects_id']==est['objects_id']
+        and_(
+            prices_history.c['materials_id'].in_(mats),
+            or_(
+                prices_history.c['objects_id'] == est['objects_id'],
+                prices_history.c['objects_id'].is_(None)
+            )
+        )
     )
+    
 
     prices_history = pd.read_sql(prices_history.statement, eng)
     # Логику цен переделать!
+    logger.debug(prices_history.loc[prices_history.objects_id.isna()])
     prices_history = prices_history[['materials_id', 'price']]
     prices_history.drop_duplicates(subset=['materials_id'], keep='last', inplace=True)
-    df = df.merge(prices_history, how='left', left_on='id', right_on='materials_id', suffixes=[None, '_mph'])
-    df['true_price'] = df['closed_price'].fillna(df['price'])
-    df.drop(columns=['materials_id', 'price', 'materials_id_mph'], inplace=True)
-    # logger.debug(df)
-    # logger.debug(df.columns)
+    df = df.merge(prices_history, how='left', on='materials_id', suffixes=[None, '_mph'])
+    df['price'] = df['closed_price'].fillna(df['price'])
+    df['cost'] = df.price * df.volume
+    df['overconsumption'] = 1
+    # df.drop(columns=['price'], inplace=True)
 
     return df
 
@@ -930,7 +774,7 @@ class Auth(Resource):
         payload_data = {
             "name": user["name"],
             "roles": user_roles, 
-            "exp": datetime.now(timezone.utc) + timedelta(hours=8760*10)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=500)
         }
         token = jwt.encode(payload_data, KEY)
         return token, 200
@@ -961,6 +805,13 @@ class SQL_execute(Resource):
                     logger.error('Ошибка при выполнении запроса')
                     ans.append({'query': q, 'success': False, 'error': str(error)})
         return jsonify(ans)
+
+
+# def debug():
+#     tables = db_tables['clc']['production']
+#     eng = engines['clc']['production']
+#     session = Session(eng)
+#     format_estimation_json_for_print(eng, session, tables, 10)
 
 
 app = Flask(__name__)

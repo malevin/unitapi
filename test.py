@@ -7,6 +7,7 @@ import json
 import jwt
 from datetime import datetime
 import time
+from pprint import pprint
 import sys
 sys.path.append('/Users/igorigor/VS code/Python work scripts/')
 # sys.path.append('/home/pavelmalevin/regular_loadings')
@@ -21,24 +22,26 @@ headers = {
     # 'Content-Type': 'application/json'
 }
 
-params = {
-    'query': [
-    ]
-}
+# params = {
+#     'query': [
+#     ]
+# }
 
-# df = print_post(
+df = print_post(
+    base + '/clc/production/actions/format_estimation_json_for_print',
+    headers=headers,
+    json={
+        'est_id': 10
+    }
+)
+
+pprint(df.json())
+
+# df = print_get(
 #     base + '/uu/scandia/execute_sql',
 #     headers=headers,
-#     json={
-#         'query': 'alter'
-#     }
+#     json={}
 # )
-
-df = print_get(
-    base + '/uu/scandia/expanded/payments_expanded',
-    headers=headers,
-    json={}
-)
 
 # logger.debug(df.json())
 

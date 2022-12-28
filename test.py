@@ -22,28 +22,15 @@ headers = {
     # 'Content-Type': 'application/json'
 }
 
-# params = {
-#     'query': [
-#     ]
-# }
-
 df = print_post(
     base + '/clc/production/actions/format_estimation_json_for_print',
     headers=headers,
     json={
-        'est_id': 10
+        'est_id': 5
     }
 )
 
 pprint(df.json())
-
-# df = print_get(
-#     base + '/uu/scandia/execute_sql',
-#     headers=headers,
-#     json={}
-# )
-
-# logger.debug(df.json())
 
 
 

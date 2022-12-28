@@ -1,5 +1,3 @@
-
-
 from sqlalchemy import create_engine, inspect
 from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
@@ -143,7 +141,7 @@ def create_db_resources_v3(creds):
         #     continue
         # ___________________
         for db, data in dbs.items():
-            # if product == 'clc' and db != 'production':
+            # if product != 'clc' or db != 'production':
             #     continue
             # logger.debug(f'{product} - {db} - {data}')
             conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**data)
@@ -170,7 +168,7 @@ def build_init_tables_argparsers(engines, tables, creds):
         #     continue
         # ___________________
         for db, eng in dbs.items():
-            # if product == 'clc' and db != 'production':
+            # if product != 'clc' or db != 'production':
             #     continue
             tables_fields_argparsers[product][db] = {}
             # Дефолтные парсеры для ообращения непосредственно к таблицам

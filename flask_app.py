@@ -637,10 +637,10 @@ def format_estimation_json_for_print(eng, session, tables, est_id, debug_flag=Fa
     materials = make_est_materials_table(eng, session, tables, est_id)
     base_mats = materials[[
         'id', 'ek_id', 'materials_id', 'name', 'ed_izm',
-        'consumption_rate', 'overconsumption', 'price', 'cost', 'volume'
+        'consumption_rate', 'overconsumption', 'price', 'cost', 'volume', 'contractors_id', 'contractors_name'
     ]].loc[materials.is_basic]
     add_mats = materials[[
-        'id', 'ek_id', 'materials_id', 'name', 'ed_izm', 'price', 'cost', 'volume'
+        'id', 'ek_id', 'materials_id', 'name', 'ed_izm', 'price', 'cost', 'volume', 'contractors_id', 'contractors_name'
     ]].loc[np.logical_not(materials.is_basic)]
     ek = ek[['id', 'work_types_id', 'volume', 'name', 'ed_izm', 'works_cost', 'ep_id', 'works_price']]
     mats_summary = materials[['ek_id', 'cost']].rename(columns={'cost': 'materials_cost'})#.sum()

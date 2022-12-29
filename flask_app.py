@@ -596,27 +596,45 @@ def format_estimation_json_for_print(eng, session, tables, est_id, debug_flag=Fa
         "props": None,
         "eps" : None
     }
+
+    # json_data = {
+    #     "doc_type" : 'Расчет',
+    #     "ss_id": 'https://docs.google.com/spreadsheets/d/1wdqymWpYiPGocLyo_nMHA9nqcmqnwEATw8CrzGICxN4/edit',
+    #     "props": {
+    #         'actual': 0,
+    #         'cost': 261061.2788,
+    #         'items_clc_code': '5.5',
+    #         'items_id': 76,
+    #         'items_name': 'Отделка черновая. Откосы окон и дверей.',
+    #         'materials_cost': 26211.2788,
+    #         'name': 'Утепление мет. арок',
+    #         'objects_full_name': None,
+    #         'objects_id': 4,
+    #         'objects_short_name': 'ЛГД',
+    #         'volume': 38.5,
+    #         'works_cost': 234850.0
+    #     },
+    #     "content" : {
+    #         'eps'...,
+    #         ...
+    #     }
+    # }
+
     ek = get_df_from_db(eng, session, tables, 'ek', {'estimation_id': est_id})
     if ek.empty and not debug_flag:
         abort(404, message='Документ не содержит ни одной работы')
 
     ep = get_df_from_db(eng, session, tables, 'ep', {'id': ek.ep_id})
-    logger.debug(f'ek:\n{ek}')
-    logger.debug(ek.clc_id.dropna())
     clc_works_prices = get_df_from_db(eng, session, tables, 'clc_works_prices', {'clc_id': ek.clc_id.dropna()})
-    logger.debug(clc_works_prices)
     work_types = get_df_from_db(eng, session, tables, 'work_types', {'id': ek.work_types_id})
-
+    descr = '\n'.join(work_types.description.tolist())
     ek = ek.merge(clc_works_prices, how='left', on=['clc_id', 'work_types_id'])
-    
     ek = ek.merge(work_types, how='left', left_on='work_types_id', right_on='id',suffixes=(None, '_work_types'))
 
     ek['works_price'] = ek['price'].fillna(ek['unit_price'])
-    # logger.debug(ek[['id', 'price', 'unit_price']])
     ek['works_cost'] = ek.works_price * ek.volume
 
     materials = make_est_materials_table(eng, session, tables, est_id)
-    logger.debug(materials)
     base_mats = materials[[
         'id', 'ek_id', 'materials_id', 'name', 'ed_izm',
         'consumption_rate', 'overconsumption', 'price', 'cost', 'volume'
@@ -624,26 +642,21 @@ def format_estimation_json_for_print(eng, session, tables, est_id, debug_flag=Fa
     add_mats = materials[[
         'id', 'ek_id', 'materials_id', 'name', 'ed_izm', 'price', 'cost', 'volume'
     ]].loc[np.logical_not(materials.is_basic)]
-
     ek = ek[['id', 'work_types_id', 'volume', 'name', 'ed_izm', 'works_cost', 'ep_id', 'works_price']]
-    logger.debug(ek)
     mats_summary = materials[['ek_id', 'cost']].rename(columns={'cost': 'materials_cost'})#.sum()
     
     # Если материалов в расчете нет, то после groupby(...).sum() клонки materials_cost не останется
     if not mats_summary.empty:
         mats_summary = mats_summary.groupby('ek_id', as_index=False).sum()
-    logger.debug(f'mats_summary:\n{mats_summary}')
+    # logger.debug(f'mats_summary:\n{mats_summary}')
     ek = ek.merge(mats_summary, how='left', left_on='id', right_on='ek_id')
     ek.drop(columns=['ek_id'], inplace=True)
     ek['materials_cost'] = ek['materials_cost'].fillna(0)
     ek['cost'] = ek['materials_cost'] + ek['works_cost']
-    logger.debug(ek)
-    # raise Exception
 
     eks_summary = ek[['ep_id', 'volume', 'materials_cost', 'works_cost', 'cost']].groupby('ep_id', as_index=False).sum()
     ep = ep.merge(eks_summary, how='left', left_on='id', right_on='ep_id')
     ep['price'] = ep['cost'] / ep['volume']
-    logger.debug(ep)
 
     ep_list = ep[['id', 'name', 'price', 'volume', 'cost']].to_dict('records')
 
@@ -681,12 +694,10 @@ def format_estimation_json_for_print(eng, session, tables, est_id, debug_flag=Fa
         **props,
         **items,
         **objects,
+        **{'work_types_description': descr}
         # **{'contracts_name': f"№ {contracts['number']} от {contracts['date']} {contracts_name}"}
     }
     json_data['props'] = props
-
-    # logger.debug()
-    # logger.debug(props)
     # pprint(json_data)
     return json_data
 
@@ -701,14 +712,11 @@ def make_est_materials_table(eng, session, tables, est_id):
     ek = session.query(ek).filter(
         ek.c['estimation_id']==est_id)
     ek = pd.read_sql(ek.statement, eng)
-    
-    # logger.debug(f'est: {est}')
 
     r_work_types_basic_materials = tables['r_work_types_basic_materials']
     r_work_types_basic_materials = session.query(r_work_types_basic_materials).filter(
         r_work_types_basic_materials.c['work_types_id'].in_(ek['work_types_id']))
     r_work_types_basic_materials = pd.read_sql(r_work_types_basic_materials.statement, eng)
-    # logger.debug(r_work_types_basic_materials)
 
     r_ek_basic_materials = tables['r_ek_basic_materials']
     r_ek_basic_materials = session.query(r_ek_basic_materials).filter(r_ek_basic_materials.c['ek_id'].in_(ek.id))
@@ -745,13 +753,14 @@ def make_est_materials_table(eng, session, tables, est_id):
             )
         )
     )
-    
 
     prices_history = pd.read_sql(prices_history.statement, eng)
     # Логику цен переделать!
-    logger.debug(prices_history.loc[prices_history.objects_id.isna()])
-    prices_history = prices_history[['materials_id', 'price']]
+    # logger.debug(prices_history.loc[prices_history.objects_id.isna()])
     prices_history.drop_duplicates(subset=['materials_id'], keep='last', inplace=True)
+    contractors = get_df_from_db(eng, session, tables, 'contractors', {'id': prices_history.contractors_id})
+    prices_history = prices_history.merge(contractors, how='left', right_on='id', left_on='contractors_id', suffixes=[None, '_contractor'])
+    prices_history = prices_history[['materials_id', 'price', 'contractors_id', 'name']].rename(columns={'name': 'contractors_name'})
     df = df.merge(prices_history, how='left', on='materials_id', suffixes=[None, '_mph'])
     df['price'] = df['closed_price'].fillna(df['price'])
     df['cost'] = df.price * df.volume
@@ -790,7 +799,6 @@ class Auth(Resource):
             abort(401, message='Invalid email or password')
         columns = table.columns.keys()
         user = {c: v for c, v in zip(columns, query[0])}
-        logger.debug(user)
         if not checkpw(args['password'].encode('utf8'), user['password'].encode('utf-8')):
             abort(401, message='Invalid email or password')
 
@@ -803,7 +811,6 @@ class Auth(Resource):
         columns = table.columns.keys()
         result = session.query(table).filter(table.c['id'].in_(user_roles_ids))
         user_roles = [v for row in result for c, v in zip(columns, row) if c == 'name']
-        logger.debug(user_roles)
         payload_data = {
             "name": user["name"],
             "roles": user_roles, 
@@ -840,11 +847,11 @@ class SQL_execute(Resource):
         return jsonify(ans)
 
 
-def debug():
-    tables = db_tables['clc']['production']
-    eng = engines['clc']['production']
-    session = Session(eng)
-    format_estimation_json_for_print(eng, session, tables, 10, True)
+# def debug():
+#     tables = db_tables['clc']['production']
+#     eng = engines['clc']['production']
+#     session = Session(eng)
+#     format_estimation_json_for_print(eng, session, tables, 10, True)
 
 
 app = Flask(__name__)
@@ -862,7 +869,7 @@ api.add_resource(SQL_execute, '/api/v1/<product>/<db>/execute_sql')
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
     # debug()
 
 

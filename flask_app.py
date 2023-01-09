@@ -120,11 +120,10 @@ creds = {
 }
 
 engines, db_tables, inspectors = create_db_resources_v3(creds)
-parsers = {
-    'initial': build_init_tables_argparsers(engines, db_tables, creds), # Для работы с таблицами
-    'actions': build_actions_argparsers(creds), # Специальные действия в продуктах
-    'special': build_spec_argparsers(creds) # Сложные склейки таблиц
-}
+parsers = {}
+parsers['initial'] = build_init_tables_argparsers(engines, db_tables, creds), # Для работы с таблицами
+parsers['actions'] = build_actions_argparsers(creds), # Специальные действия в продуктах
+parsers['special'] = build_spec_argparsers(creds) # Сложные склейки таблиц
 
 
 # В токенах, которые запрашивает API содержится пэйлоад с должностью, именем и сроком действия.
@@ -553,7 +552,7 @@ api.add_resource(SQL_execute, '/api/v1/<product>/<db>/execute_sql')
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
     # debug()
 
 

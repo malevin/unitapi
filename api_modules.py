@@ -202,11 +202,10 @@ def create_db_resources_v3(creds):
         #     continue
         # ___________________
         for db, data in dbs.items():
-            # if product != 'clc' or db != 'production':
+            # if product != 'uu' or db != 'scandia':
             #     continue
             conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**data)
             eng = create_engine(conn_str, echo=False)
-            logger.debug(eng.url.database)
             Base = automap_base()
             Base.prepare(eng, reflect=True)
             engines[product][db] = eng
@@ -224,7 +223,7 @@ def build_init_tables_argparsers(engines, tables, creds):
         #     continue
         # ___________________
         for db, eng in dbs.items():
-            # if product != 'clc' or db != 'production':
+            # if product != 'uu' or db != 'scandia':
             #     continue
             tables_fields_argparsers[product][db] = {}
             # Дефолтные парсеры для ообращения непосредственно к таблицам

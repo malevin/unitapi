@@ -23,11 +23,11 @@ headers = {
 }
 
 df = print_get(
-    base + '/uu/scandia/expanded/contracts_expanded',
+    base + '/uu/scandia/initial/document_types',
     headers=headers,
-    # json={
-    #     'est_id': 10
-    # }
+    json={
+        # 'est_id': 10
+    }
 )
 # 
 

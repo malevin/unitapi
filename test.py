@@ -9,7 +9,7 @@ from datetime import datetime
 import time
 from pprint import pprint
 import sys
-sys.path.append('/Users/igorigor/VS code/Python work scripts/')
+sys.path.append('/Users/igorigor/VS code/Python/work scripts/')
 # sys.path.append('/home/pavelmalevin/regular_loadings')
 from test_modules import *
 

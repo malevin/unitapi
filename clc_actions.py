@@ -3,6 +3,7 @@ import pandas as pd
 from loguru import logger
 from sqlalchemy import or_, and_
 from flask import jsonify, make_response
+import numpy as np
 
 
 # Функция возвращает json объект для распечатки расчета в гугл таблицы.
@@ -275,4 +276,3 @@ def delete_spc_with_mats(session, tables, spc_ids):
 
 
 
-        

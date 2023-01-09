@@ -2,6 +2,7 @@ from api_modules import get_df_from_db, get_table_from_db
 import pandas as pd
 from loguru import logger
 from flask import jsonify, make_response
+import numpy as np
 
 
 def delete_pack_with_payment_requests(session, tables, args):

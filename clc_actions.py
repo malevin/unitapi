@@ -48,6 +48,7 @@ def format_estimation_json(eng, session, tables, est_id, debug_flag=False):
     ek.drop(columns=['ek_id'], inplace=True)
     ek['materials_cost'] = ek['materials_cost'].fillna(0)
     ek['cost'] = ek['materials_cost'] + ek['works_cost']
+    ek = ek.where(pd.notnull(ek), None)
     eks_summary = ek[['ep_id', 'volume', 'materials_cost', 'works_cost', 'cost']].groupby('ep_id', as_index=False).sum()
     ep = ep.merge(eks_summary, how='left', left_on='id', right_on='ep_id')
     ep['price'] = ep['cost'] / ep['volume']

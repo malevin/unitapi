@@ -21,7 +21,7 @@ def get_files_in_dir():
     return filenames
 
 for i in get_files_in_dir():
-    with open(i, 'rb') as f:
-#     with open(i) as f:
+#     with open(i, 'rb') as f:
+    with open(i) as f:
         s = f.read()
     post_file(i, s)

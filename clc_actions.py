@@ -49,26 +49,40 @@ def format_estimation_json(eng, session, tables, est_id, debug_flag=False):
     ek['materials_cost'] = ek['materials_cost'].fillna(0)
     ek['cost'] = ek['materials_cost'] + ek['works_cost']
     ek = ek.replace(np.nan, None)
+    logger.debug(ek)
+    
     eks_summary = ek[['ep_id', 'volume', 'materials_cost', 'works_cost', 'cost']].groupby('ep_id', as_index=False).sum()
     ep = ep.merge(eks_summary, how='left', left_on='id', right_on='ep_id')
     ep['price'] = ep['cost'] / ep['volume']
     ep_list = ep[['id', 'name', 'price', 'volume', 'cost']].to_dict('records')
 
+    ep_list_output = []
     for i, ep_row in enumerate(ep_list):
+        logger.debug(f'i: {i}')
         ep_eks = ek.loc[ek.ep_id == ep_row['id']]
         ek_list = ep_eks.drop(columns=['ep_id']).to_dict('records')
+        logger.debug(ek_list)
+        ek_list_output = []
+        # raise Exception
         for j, ek_row in enumerate(ek_list):
+            logger.debug(f'j: {j}')
+            if ek_row['id'] == 53:
+                logger.debug(ek_row)
             ek_base_mat = base_mats.loc[base_mats.ek_id == ek_row['id']]
             ek_base_mat_list = ek_base_mat.drop(columns=['ek_id']).to_dict('records')
             ek_add_mat = add_mats.loc[add_mats.ek_id == ek_row['id']]
             ek_add_mat_list = ek_add_mat.drop(columns=['ek_id']).to_dict('records')
-            ek_list[j]['base_mats'] = ek_base_mat_list
-            ek_list[j]['add_mats'] = ek_add_mat_list
-            ek_list[j]['order_num'] = str(i+1) + '.' + str(j+1)
-        ep_list[i]['eks'] = ek_list
-        ep_list[i]['order_num'] = str(i+1)
+            ek_row['base_mats'] = ek_base_mat_list
+            ek_row['add_mats'] = ek_add_mat_list
+            ek_row['order_num'] = str(i+1) + '.' + str(j+1)
+            ek_list_output.append(ek_row)
+            if ek_row['id'] == 53:
+                logger.debug(ek_list[j])
+        ep_row['eks'] = ek_list_output
+        ep_row['order_num'] = str(i+1)
+        ep_list_output.append(ep_row)
     
-    json_data['eps'] = ep_list
+    json_data['eps'] = ep_list_output
 
     objects = get_table_from_db(
         session, tables, 'objects', {'id': est['objects_id']},

@@ -4,7 +4,7 @@ from loguru import logger
 from sqlalchemy import or_, and_
 from flask import jsonify, make_response
 import numpy as np
-# from pprint import pprint
+from pprint import pprint
 
 
 # Функция возвращает json объект для распечатки расчета в гугл таблицы.
@@ -48,7 +48,7 @@ def format_estimation_json(eng, session, tables, est_id, debug_flag=False):
     ek.drop(columns=['ek_id'], inplace=True)
     ek['materials_cost'] = ek['materials_cost'].fillna(0)
     ek['cost'] = ek['materials_cost'] + ek['works_cost']
-    ek = ek.where(pd.notnull(ek), None)
+    ek = ek.replace(np.nan, None)
     eks_summary = ek[['ep_id', 'volume', 'materials_cost', 'works_cost', 'cost']].groupby('ep_id', as_index=False).sum()
     ep = ep.merge(eks_summary, how='left', left_on='id', right_on='ep_id')
     ep['price'] = ep['cost'] / ep['volume']
@@ -92,7 +92,7 @@ def format_estimation_json(eng, session, tables, est_id, debug_flag=False):
         # **{'contracts_name': f"№ {contracts['number']} от {contracts['date']} {contracts_name}"}
     }
     json_data['props'] = props
-    # pprint(json_data)
+    pprint(json_data)
     return json_data
 
 
@@ -182,7 +182,7 @@ def make_est_materials_table(eng, session, tables, est_id=None, est=None, ek=Non
 
     df['cost'] = df.price * df.volume
     df['overconsumption'] = 1
-    df = df.where(pd.notnull(df), None)
+    df = df.replace(np.nan, None)
     return df
 
 

@@ -553,7 +553,7 @@ api.add_resource(SQL_execute, '/api/v1/<product>/<db>/execute_sql')
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
     # debug()
 
 

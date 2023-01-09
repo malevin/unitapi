@@ -4,6 +4,7 @@ from loguru import logger
 from sqlalchemy import or_, and_
 from flask import jsonify, make_response
 import numpy as np
+# from pprint import pprint
 
 
 # Функция возвращает json объект для распечатки расчета в гугл таблицы.
@@ -90,7 +91,7 @@ def format_estimation_json(eng, session, tables, est_id, debug_flag=False):
         # **{'contracts_name': f"№ {contracts['number']} от {contracts['date']} {contracts_name}"}
     }
     json_data['props'] = props
-    pprint(json_data)
+    # pprint(json_data)
     return json_data
 
 
@@ -180,6 +181,7 @@ def make_est_materials_table(eng, session, tables, est_id=None, est=None, ek=Non
 
     df['cost'] = df.price * df.volume
     df['overconsumption'] = 1
+    df = df.where(pd.notnull(df), None)
     return df
 
 

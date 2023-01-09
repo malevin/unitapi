@@ -1,21 +1,70 @@
 from sqlalchemy import create_engine, inspect
 from flask_restful import reqparse
 from sqlalchemy.ext.automap import automap_base
-from datetime import date, datetime
-from flask.json import JSONEncoder
 from loguru import logger
+import pandas as pd
 import copy
-# from sqlalchemy.orm import declarative_base
 
 
-# def create_db_resources(creds):
-#     conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**creds)
-#     engine = create_engine(conn_str, echo=False)
-#     Base = automap_base()
-#     Base.prepare(engine, reflect=True)
-#     tables = Base.metadata.tables
-#     return engine, tables
+# Функция, проверяющая, что по запросу в БД найдена хоть одна запись,
+# иначе ошибка 404. Опционально можно добавить флаг на поднятие ошибки 400
+# в случае, если запрос возвращает больше одной строки.
+# Это сделано для запросов на редактирование строчек, где все поля, образующие primary key
+# являются обязательными и редактироваться должна только одна строка.
+# Но в случае ошибки, эта проверка не даст отредактировать несколько строк.
+def check_for_empty_table(q, multiple_records_abort=False):
+    c = q.count()
+    if c == 0:
+        abort(404, message='Record is not found')
+    elif c > 1 and multiple_records_abort:
+        abort(400, message='Multiple records found. Ask developers to check indexes in database and required parameters in API')
 
+
+# Функция возвращает датафрейм из таблицы в БД.
+# Можно опционально передать фильтры и поля, которые нужно оставить в ДФ
+def get_df_from_db(eng, session, tables, table_name, filters={}, remain_cols=None):
+    t = tables[table_name]
+    q = session.query(t)
+    if remain_cols is not None:
+        fields = [t.c[col] for col in remain_cols]
+        q = q.with_entities(*fields)
+    filters = [
+        t.c[col].in_(
+            [v] if not isinstance(v, (list, tuple, set, pd.Series)) else v
+        ) for col, v in filters.items()
+    ]
+    q = q.filter(*filters)
+    t = pd.read_sql(q.statement, eng)
+    return t
+
+
+# Функция возвращает список словарей из таблицы в БД.
+# Можно опционально передать фильтры и поля, которые нужно оставить в ДФ,
+# и флаг на добавления префикса из названия таблицы к названию полей (имя_таблицы_поле)
+def get_table_from_db(session, tables, table_name, filters={}, remain_cols=None, add_prefix=False):
+    t = tables[table_name]
+    columns = t.columns.keys()
+    if add_prefix:
+        columns = [table_name + '_' + c for c in columns]
+        if remain_cols is not None:
+            remain_cols = [table_name + '_' + c for c in remain_cols]
+    filters = [
+        t.c[col].in_(
+            [v] if not isinstance(v, (list, tuple, set, pd.Series)) else v
+        ) for col, v in filters.items()
+    ]
+    result = session.query(t).filter(*filters)
+    if remain_cols is not None:
+        t = [{c: v for c, v in zip(columns, row) if c in remain_cols} for row in result]
+    else:
+        t = [{c: v for c, v in zip(columns, row)} for row in result]
+    return t
+
+
+# Парсеры объединены в структуру словаря, как creds для доступа в БД
+# Если парсер находится по ключу COMMON, например в управленческом учете, это
+# значит, что действие, для которого он предназначен может быть выполнено над любой БД
+# в этом продукте.
 def build_actions_argparsers(creds):
     actions_parsers = copy.deepcopy(creds)
     for product, dbs in creds.items():
@@ -67,8 +116,18 @@ def build_actions_argparsers(creds):
 
     ps = reqparse.RequestParser()
     ps.add_argument(
-        'est_id', required=True, nullable=False, store_missing=False, type=int, action='store')
-    actions_parsers['clc']['production']['format_estimation_json_for_print'] = ps
+        'est_id', required=True, nullable=False, store_missing=False, type=int)
+    actions_parsers['clc']['production']['format_estimation_json'] = ps
+
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'clc_id', required=True, nullable=False, store_missing=False, type=int)
+    actions_parsers['clc']['production']['format_clc_json'] = ps
+
+    ps = reqparse.RequestParser()
+    ps.add_argument(
+        'spc_id', required=True, nullable=False, store_missing=False, type=int)
+    actions_parsers['clc']['production']['format_spc_json'] = ps
 
     ps = reqparse.RequestParser()
     ps.add_argument(
@@ -115,6 +174,7 @@ def build_actions_argparsers(creds):
     return actions_parsers
 
 
+# Парсеры для специальных составных таблиц
 def build_spec_argparsers(creds):
     spec_parsers = copy.deepcopy(creds)
     for product, dbs in creds.items():
@@ -131,6 +191,7 @@ def build_spec_argparsers(creds):
     return spec_parsers
 
 
+# Функция создает объекты таблиц, объекты движков и объекты инспекторов для каждой БД
 def create_db_resources_v3(creds):
     engines = copy.deepcopy(creds)
     tables = copy.deepcopy(creds)
@@ -143,7 +204,6 @@ def create_db_resources_v3(creds):
         for db, data in dbs.items():
             # if product != 'clc' or db != 'production':
             #     continue
-            # logger.debug(f'{product} - {db} - {data}')
             conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**data)
             eng = create_engine(conn_str, echo=False)
             logger.debug(eng.url.database)
@@ -155,11 +215,7 @@ def create_db_resources_v3(creds):
     return engines, tables, inspectors
 
 
-# tables_fields_argparsers – это словарь (объект), содержащий парсеры аргументов запроса,
-# которые соответствуют полям таблиц в существующей БД
-# Инициализируется перед запуском API затем, чтобы при добавлении или удалении полей в БД,
-# API продолжал работать стабильно на старой схеме. Если новые/удаленные поля повлияли на работу системы,
-# то мы увидим это через ошибки в API
+# Парсеры для работы с таблицами в БД
 def build_init_tables_argparsers(engines, tables, creds):
     tables_fields_argparsers = copy.deepcopy(creds)
     for product, dbs in engines.items():
@@ -188,13 +244,11 @@ def build_init_tables_argparsers(engines, tables, creds):
                     table_parsers['DELETE'].add_argument(column.name, required=True, nullable=False, store_missing=False)
                     table_parsers['PUT'].add_argument(column.name, required=True, nullable=False, store_missing=False)
                 for column in inspector.get_columns(table_name, schema=eng.url.database):
+                    # FIXME
                     # Добавить проверку по типу данных ОБЯЗАТЕЛЬНО!
-                    # req_f = not column["nullable"] and \
-                    #     ((not column["autoincrement"]) if "autoincrement" in column else True) and \
-                    #         column['default'] is None
                     table_parsers['POST'].add_argument(
                         column['name'],
-                        # type= # Доделать сопоставлением типов данных возвращаемых схемой SQL с питоновыми типами
+                        # type = # Доделать сопоставлением типов данных возвращаемых схемой SQL с питоновыми типами
                         required=not column["nullable"] and \
                             ((not column["autoincrement"]) if "autoincrement" in column else True) and \
                                 column['default'] is None,
@@ -211,25 +265,5 @@ def build_init_tables_argparsers(engines, tables, creds):
                             store_missing=False # Если False, то парсит только переданные значения, остальные нет.
                             # Если True (по дефолту), то все непереданные аргументы парсятся со значениями None
                             )
-                # if table_name == 'contractor':
-                    # logger.debug(table_parsers['POST'].args)
                 tables_fields_argparsers[product][db][table_name] = table_parsers
-                # logger.debug(tables_fields_argparsers[product][db][table_name])
     return tables_fields_argparsers
-
-
-# def create_db_resources_v2(creds, auth_creds):
-#     conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**auth_creds)
-#     auth_engine = create_engine(conn_str, echo=False)
-#     Base = automap_base()
-#     Base.prepare(auth_engine, reflect=True)
-#     auth_tables = Base.metadata.tables
-
-#     engine = {}
-#     for k, v in creds.items():
-#         conn_str = "mysql+pymysql://{username}:{password}@{hostname}/{dbname}".format(**v)
-#         engine[k] = create_engine(conn_str, echo=False)
-#     Base = automap_base()
-#     Base.prepare(engine['production'], reflect=True)
-#     tables = Base.metadata.tables
-#     return engine, tables, auth_engine, auth_tables

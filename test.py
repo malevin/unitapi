@@ -22,14 +22,21 @@ headers = {
     # 'Content-Type': 'application/json'
 }
 
+params = {
+    'query': [
+        'alter table r_ek_basic_materials drop column closed_price',
+        'alter table r_ek_basic_materials drop column closed_overconsumption',
+        'alter table r_ek_add_materials drop column closed_price',
+    ]
+}
 df = print_post(
-    base + '/clc/production/actions/format_estimation_json_for_print',
+    base + '/clc/production/actions/format_estimation_json',
     headers=headers,
     json={
         'est_id': 10
     }
 )
-
+# 
 pprint(df.json())
 
 

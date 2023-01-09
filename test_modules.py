@@ -1,8 +1,11 @@
+# Несколько модулей, с которыми удобно тестировать API вручную
+
 from loguru import logger
 import pandas as pd
 import requests
 import jwt
 from datetime import datetime
+
 
 
 token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiXHUwNDE4XHUwNDMzXHUwNDNlXHUwNDQwXHUwNDRjIFx1MDQxMVx1MDQzZVx1MDQ0MFx1MDQzZVx1MDQzNFx1MDQzOFx1MDQzZCIsInJvbGVzIjpbIlx1MDQyMFx1MDQzMFx1MDQzN1x1MDQ0MFx1MDQzMFx1MDQzMVx1MDQzZVx1MDQ0Mlx1MDQ0N1x1MDQzOFx1MDQzYSJdLCJleHAiOjE5ODcxMzY3MzJ9.18FEpvUm56aAuQ3RvpFE-kz7NkycIIJLSn7o3Isot2E'
@@ -69,4 +72,3 @@ def df_post(*args, **kwargs):
 #     }
 #     response = get(auth_base, json=params)
 #     return response.json()
-

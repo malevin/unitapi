@@ -266,3 +266,11 @@ def build_init_tables_argparsers(engines, tables, creds):
                             )
                 tables_fields_argparsers[product][db][table_name] = table_parsers
     return tables_fields_argparsers
+
+
+
+
+
+
+
+

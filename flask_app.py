@@ -26,7 +26,7 @@ from pprint import pprint
 from uu_actions import *
 from clc_actions import *
 from api_modules import build_init_tables_argparsers, create_db_resources_v3,build_spec_argparsers, build_actions_argparsers
-from api_modules import get_df_from_db, get_table_from_db
+from api_modules import get_df_from_db, get_table_from_db, check_for_empty_table
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 pd.options.mode.chained_assignment = None
